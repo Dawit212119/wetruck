@@ -20,16 +20,16 @@ class AuditMixin:
     )
 
     # These will typically reference your User table (or a simplified "created_by_user_id")
-    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
-    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
+    # created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
+    # updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
 
-    @declared_attr
-    def created_by_user(cls):
-        return relationship("User", foreign_keys=[cls.created_by])
+    # @declared_attr
+    # def created_by_user(cls):
+    #     return relationship("User", foreign_keys=[cls.created_by])
 
-    @declared_attr
-    def updated_by_user(cls):
-        return relationship("User", foreign_keys=[cls.updated_by])
+    # @declared_attr
+    # def updated_by_user(cls):
+    #     return relationship("User", foreign_keys=[cls.updated_by])
 
 
 # Mixin for models that belong to an Organization (multi-tenant scope)
