@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from core.settings.env import Environment
+from src.core.settings.env import Environment
 from src.api import api_router
 from src.core.exceptions import CustomHTTPException, custom_http_exception_handler
 from src.middlewares import ExceptionHandlerMiddleware

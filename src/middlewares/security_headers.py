@@ -7,8 +7,8 @@ from fastapi import Request
 from fastapi import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.config import CONFIG
-from app.core.config import Env
+from src.core.settings.settings import settings
+from src.core.settings.env import Environment
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -33,7 +33,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # # Only set HSTS when served over HTTPS to avoid locking out local dev
         is_https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
-        if is_https and CONFIG.ENV in (Env.DEV, Env.PROD):
+        if is_https and settings.env in (Environment.DEV, Environment.PROD):
             # 6 months, include subdomains, allow preload if you plan to submit
             response.headers.setdefault(
                 "Strict-Transport-Security",
