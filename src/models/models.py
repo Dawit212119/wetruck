@@ -1,12 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, func
+from core.db.session import Base
+from sqlalchemy import Column, Integer, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
-
-# Base class for all models
-class Base(DeclarativeBase):
-    pass
 
 # Abstract mixin for audit fields + created_by / updated_by
 class AuditMixin:

@@ -1,15 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from core.settings.env import Environment
-from src.api import api_router
+
+from src.core.settings.env import Environment
+from src.api.router import api_router  
 from src.core.exceptions import CustomHTTPException, custom_http_exception_handler
 from src.middlewares import ExceptionHandlerMiddleware
 from src.middlewares.security_headers import SecurityHeadersMiddleware
 from src.core.settings.settings import settings
 
 
-app = FastAPI()
+app = FastAPI(
+    title="WeTruck API",
+    version="1.0.0",
+    description="WeTruck Freight Operations Backend API",
+    swagger_ui_parameters={
+        "persistAuthorization": True, 
+    },
+)
+
+
+# CORS configuration
 if settings.env in (Environment.DEV, Environment.LOCAL):
     app.add_middleware(
         CORSMiddleware,
@@ -26,12 +37,13 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://localhost:8992",
             "http://localhost:8993",
             "http://localhost:8994",
-            "http://localhost:5173"
+            "http://localhost:5173",
         ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 elif settings.env == Environment.PROD:
     app.add_middleware(
         CORSMiddleware,
@@ -46,6 +58,7 @@ elif settings.env == Environment.PROD:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 else:
     app.add_middleware(
         CORSMiddleware,
@@ -62,10 +75,13 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ExceptionHandlerMiddleware)
+
 app.add_exception_handler(CustomHTTPException, custom_http_exception_handler)
+
+
+# Routes
 app.include_router(api_router)
-
-

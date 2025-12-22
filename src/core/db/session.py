@@ -1,33 +1,56 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from src.core.settings.settings import settings
-# "sqlalchemy.url = postgresql+psycopg2://username:password@localhost:5432/database_name
-# "
-SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.db_username}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
-#SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # Or your actual database URL
+from __future__ import annotations
 
+from typing import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
+
+from src.core.settings.settings import settings
+
+
+
+# Database URL
+
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql+psycopg2://{settings.db_username}:"
+    f"{settings.db_password}@{settings.db_host}:"
+    f"{settings.db_port}/{settings.db_name}"
+)
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,  
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
 
-def get_db():
+
+# Session factory
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autocommit=False,
+    autoflush=False,
+    class_=Session,
+)
+
+
+
+# Base for ALL models
+
+class Base(DeclarativeBase):
+    pass
+
+# FastAPI dependency: one DB session per request
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
-    except Exception as e:
+    except Exception:
         db.rollback()
-        db.flush()
-        raise e
+        raise
     finally:
         db.close()
 
-get_db_session =next(get_db())
 
 
 # Asynchronous Engine and Session
