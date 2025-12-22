@@ -1,12 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, func
+from core.db.session import Base
+from sqlalchemy import Column, Integer, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
-from src.core.db.session import Base
-
-# Base class for all models
-
 
 # Abstract mixin for audit fields + created_by / updated_by
 class AuditMixin:
@@ -38,14 +35,9 @@ class TenantMixin:
     def organization_id(cls) -> Mapped[int]:
         return mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
 
-@declared_attr
-def organization(cls):
-    return relationship(
-        "Organization",
-        foreign_keys=[cls.organization_id],
-    )
-
-
+    @declared_attr
+    def organization(cls):
+        return relationship("Organization", back_populates=cls.__tablename__ + "s")
 
 
 # ==============================
@@ -54,65 +46,41 @@ def organization(cls):
 
 class Organization(Base, AuditMixin):
     __tablename__ = "organization"
-    type: Mapped[str] = mapped_column(nullable=False) 
-    # Users
-    users = relationship("User", back_populates="organization")
 
-    # Ships (created by shippers)
-  
-    ships = relationship("Ship", back_populates="shipper")
-    # Ship items 
-    ship_items = relationship(
-    "ShipItem",
-    back_populates="transporter",
-    foreign_keys="ShipItem.transporter_id",
-)
+    type: Mapped[str] = mapped_column(nullable=False)  # e.g., 'Shipper', 'Transporter'
 
-    # Assets
-    trucks = relationship("Truck")
-    drivers = relationship("Driver")
-    containers = relationship("Container")
-    gps_devices = relationship("GPSDevice")
-    # Documents & finance
-    documents = relationship("Document", back_populates="organization")
-    payments = relationship("Payment")
-    price_quotes = relationship("PriceQuote")
-
+    # Back-populated relationships will be added in other models
 
 
 class User(Base, AuditMixin, TenantMixin):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
-    user_type: Mapped[str] = mapped_column(nullable=False)
+    user_type: Mapped[str] = mapped_column(nullable=False)  # BackOffice, Transporter, Shipper
     username: Mapped[str] = mapped_column(unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
 
-    backoffice = relationship("BackOffice", uselist=False, back_populates="user")
-    transporter_user = relationship("TransporterUser", uselist=False, back_populates="user")
-    shipper_user = relationship("ShipperUser", uselist=False, back_populates="user")
-    organization = relationship("Organization", back_populates="users")
-
+    # Relationships added in specialized user tables below
 
 
 class BackOffice(Base):
     __tablename__ = "backoffice"
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
     user = relationship("User", back_populates="backoffice")
 
 
 class TransporterUser(Base):
     __tablename__ = "transporter_user"
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
     user = relationship("User", back_populates="transporter_user")
 
 
 class ShipperUser(Base):
     __tablename__ = "shipper_user"
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
     user = relationship("User", back_populates="shipper_user")
 
 
-class Ship(Base, AuditMixin):
+class Ship(Base, AuditMixin, TenantMixin):
     __tablename__ = "ship"
 
     shipper_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
@@ -206,10 +174,11 @@ class Document(Base, AuditMixin, TenantMixin):
     document_type: Mapped[Optional[str]]
     file_path: Mapped[str] = mapped_column(nullable=False)
 
+    # Polymorphic ownership
     truck_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("truck.id"))
     driver_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("driver.id"))
+    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization.id"))
 
     truck = relationship("Truck", back_populates="documents")
     driver = relationship("Driver", back_populates="documents")
     organization = relationship("Organization", back_populates="documents")
-
