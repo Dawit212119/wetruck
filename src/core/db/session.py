@@ -6,6 +6,7 @@ from src.core.settings.settings import settings
 # "sqlalchemy.url = postgresql+psycopg2://username:password@localhost:5432/database_name
 # "
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.db_username}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+
 #SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # Or your actual database URL
 
 
