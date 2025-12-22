@@ -4,8 +4,6 @@ from sqlalchemy.orm import Session
 from src.core.db.session import get_db  # <- new session dependency
 from src.core.app_logging import logger
 
-from src.core.db.session import get_db
-from src.core.app_logging import logger
 
 router = APIRouter()
 
