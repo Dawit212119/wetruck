@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from src.core.db.session import get_db  # <- new session dependency
 from src.core.app_logging import logger
 
+from src.core.db.session import get_db
+from src.core.app_logging import logger
+
 router = APIRouter()
 
 @router.get("/check")
@@ -12,7 +15,6 @@ def health_check(db: Session = Depends(get_db)):
     Simple health check endpoint to verify database connectivity using the new session.
     """
     try:
-        # Execute a simple SQL query
         result = db.execute(text("SELECT 1"))
         row = result.fetchone()
         logger.info(f"DB connected, result: {row[0]}")

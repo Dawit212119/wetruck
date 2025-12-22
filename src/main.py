@@ -17,11 +17,17 @@ from src.core.settings.settings import settings
 from src.api import api_router
 
 
-app = FastAPI()
+app = FastAPI(
+    title="WeTruck API",
+    version="1.0.0",
+    description="WeTruck Freight Operations Backend API",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    },
+)
 
-# -------------------------
-# CORS
-# -------------------------
+
+# CORS configuration
 if settings.env in (Environment.DEV, Environment.LOCAL):
     app.add_middleware(
         CORSMiddleware,
@@ -44,6 +50,7 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 elif settings.env == Environment.PROD:
     app.add_middleware(
         CORSMiddleware,
@@ -58,6 +65,7 @@ elif settings.env == Environment.PROD:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 else:
     app.add_middleware(
         CORSMiddleware,
