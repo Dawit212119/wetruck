@@ -6,21 +6,46 @@ from jose import jwt, JWTError
 from src.core.settings.settings import settings
 
 
-def create_access_token(*, subject: str, role: str, expires_minutes: int = 60) -> str:
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(minutes=expires_minutes)
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-    payload: Dict[str, Any] = {
-        "sub": subject,
-        "role": role,
-        "iat": int(now.timestamp()),
-        "exp": int(exp.timestamp()),
-    }
+
+def _create_token(payload: Dict[str, Any], expires_delta: timedelta) -> str:
+    now = datetime.now(timezone.utc)
+    exp = now + expires_delta
+
+    payload.update(
+        {
+            "iat": int(now.timestamp()),
+            "exp": int(exp.timestamp()),
+        }
+    )
 
     return jwt.encode(
         payload,
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
+    )
+
+
+def create_access_token(*, subject: str, role: str) -> str:
+    return _create_token(
+        payload={
+            "sub": subject,
+            "role": role,
+            "type": "access",
+        },
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+
+def create_refresh_token(*, subject: str) -> str:
+    return _create_token(
+        payload={
+            "sub": subject,
+            "type": "refresh",
+        },
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
 
