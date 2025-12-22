@@ -9,9 +9,9 @@ from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from app.core.app_logging import logger
-from app.core.exceptions import CustomHTTPException
-from app.core.exceptions import custom_http_exception_handler
+from src.core.app_logging import logger
+from src.core.exceptions import CustomHTTPException
+from src.core.exceptions import custom_http_exception_handler
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):

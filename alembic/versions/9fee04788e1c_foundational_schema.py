@@ -1,8 +1,8 @@
-"""WP-15 Create main models and migration
+"""foundational schema
 
-Revision ID: 1b96914bd5ad
+Revision ID: 9fee04788e1c
 Revises: 
-Create Date: 2025-12-19 10:09:07.094325
+Create Date: 2025-12-21 17:01:23.976744
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1b96914bd5ad'
+revision: str = '9fee04788e1c'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -65,12 +65,10 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('organization_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ),
     sa.ForeignKeyConstraint(['shipper_id'], ['organization.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('user',
+    op.create_table('users',
     sa.Column('user_type', sa.String(), nullable=False),
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
@@ -84,7 +82,7 @@ def upgrade() -> None:
     )
     op.create_table('backoffice',
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('ship_document',
@@ -97,12 +95,12 @@ def upgrade() -> None:
     )
     op.create_table('shipper_user',
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('transporter_user',
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('truck',
@@ -120,10 +118,10 @@ def upgrade() -> None:
     sa.Column('file_path', sa.String(), nullable=False),
     sa.Column('truck_id', sa.Integer(), nullable=True),
     sa.Column('driver_id', sa.Integer(), nullable=True),
-    sa.Column('organization_id', sa.Integer(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('organization_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['driver_id'], ['driver.id'], ),
     sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ),
     sa.ForeignKeyConstraint(['truck_id'], ['truck.id'], ),
@@ -193,7 +191,7 @@ def downgrade() -> None:
     op.drop_table('shipper_user')
     op.drop_table('ship_document')
     op.drop_table('backoffice')
-    op.drop_table('user')
+    op.drop_table('users')
     op.drop_table('ship')
     op.drop_table('price_quote')
     op.drop_table('gps_device')

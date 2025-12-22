@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import Awaitable
-from typing import Callable
+from typing import Awaitable, Callable
 
-from fastapi import Request
-from fastapi import Response
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.config import CONFIG
-from app.core.config import Env
+from src.core.settings.settings import settings
+from src.core.settings.env import Environment
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -25,23 +23,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault(
             "Permissions-Policy",
-            # Restrictive by default; loosen per feature if needed
             "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",  # noqa: E501
         )
-        # X-XSS-Protection is obsolete but sometimes required by scanners
         response.headers.setdefault("X-XSS-Protection", "0")
 
-        # # Only set HSTS when served over HTTPS to avoid locking out local dev
+        # Set HSTS only on HTTPS and non-local envs
         is_https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
-        if is_https and CONFIG.ENV in (Env.DEV, Env.PROD):
-            # 6 months, include subdomains, allow preload if you plan to submit
+        if is_https and settings.env in (Environment.DEV, Environment.PROD):
             response.headers.setdefault(
                 "Strict-Transport-Security",
                 "max-age=15552000; includeSubDomains; preload",
             )
 
-        # Content Security Policy: conservative default; adjust as your frontends require
-        # This only affects JSON/HTML responses, not static assets (served elsewhere)
+        # Content Security Policy
         csp = (
             "default-src 'self'; "
             "frame-ancestors 'none'; "
@@ -53,7 +47,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "connect-src 'self' https:; "
             "form-action 'self'"
         )
-        # Don't override if upstream already set a custom CSP
         response.headers.setdefault("Content-Security-Policy", csp)
 
         return response

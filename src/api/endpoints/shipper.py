@@ -1,0 +1,12 @@
+from fastapi import APIRouter, Depends
+from src.core.security.dependencies import require_roles
+from src.core.security.roles import Roles
+
+router = APIRouter(prefix="/shipper", tags=["Shipper"])
+
+
+@router.post("/shipments")
+def create_shipment(
+    user=Depends(require_roles(Roles.SHIPPER))
+):
+    return {"message": "Shipment created"}
