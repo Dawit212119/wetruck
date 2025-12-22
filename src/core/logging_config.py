@@ -18,3 +18,4 @@ if not logger.handlers:
     # Add handler to logger
     logger.addHandler(handler)
 
+

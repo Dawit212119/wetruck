@@ -1,7 +1,7 @@
 #  schemas for onboarding flow
 
 
-from typing  import Optional. List,Dict, Any
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime  import datetime
 
@@ -20,7 +20,7 @@ class RegistrationRequest(BaseModel):
 class ProfileBasicsData(BaseModel):
     name: str = Field(...,min_length=1)
     phone: Optional[str]=None
-    email: EmailStrr
+    email: EmailStr
     document_urls: Optional[List[str]]=Field(default=[],description="urls of the documents (id,license)")
 
 
@@ -43,9 +43,9 @@ class PaymentPreferncesStepRequest(BaseModel):
     step_data: PaymentPreferncesData
 
 #  route
-class RoutePreferencesData(BaseMode):
+class RoutePreferencesData(BaseModel):
     preferred_routes:List[str]= Field(..., description="List of preferred routes")
-class RoutePreferencesStepRequest(BaseMode):
+class RoutePreferencesStepRequest(BaseModel):
 
     step_data: RoutePreferencesData
 
@@ -56,12 +56,12 @@ class TutorialData(BaseModel):
     completed_at:Optional[datetime]=None
     score:Optional[int]=Field(None,ge=0,le=100)
 
-class TutorialStepRequest(BaseMode):
+class TutorialStepRequest(BaseModel):
     step_data: TutorialData
 
 #  generic onboarding step response
 
-class OnboardingStepResponse(BaseMode):
+class OnboardingStepResponse(BaseModel):
     id:int
     user_id:int
     role:str
@@ -88,6 +88,9 @@ class AddUserToOrganizationRequest(BaseModel):
     phone:Optional[str]= None
     role_in_org: Optional[str]=Field(...,description="role within org")   # future will be implemented  
     permissions:Optional[Dict[str,Any]]=Field(default=None,description="permission for that user like  upload:false ")
+# Bulk Add Users to Organization Schema
+class BulkAddUsersRequest(BaseModel):
+    users: List[AddUserToOrganizationRequest] = Field(..., min_items=1, description="List of users to add")
 
 class MessageResponse(BaseModel):
     code:int

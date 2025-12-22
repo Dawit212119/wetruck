@@ -23,6 +23,8 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://dev.web.wetruck.ai:8993",
             "http://dev.web.wetruck.ai:8994",
             "http://localhost:8991",
+            "http://dev.web.wetruck.ai:8991",
+            "http://127.0.0.1:8000",
             "http://localhost:8992",
             "http://localhost:8993",
             "http://localhost:8994",

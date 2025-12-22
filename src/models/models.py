@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import Optional,List,Dict,Any
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, Enum as SAEnum
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, Enum as SAEnum, String, Boolean, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from enum import Enum
+from sqlalchemy import TypeDecorator
+import json
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 
@@ -17,7 +20,7 @@ class OrgUserStatus(Enum):
     ACTIVE="active"
     INACTIVE="inactive"
     SUSPENDED="suspended"
-    PENDING"pending"
+    PENDING="pending"
 class UserType(Enum):
     BACKOFFICE="backoffice"
     SHIPPER="shipper" 
@@ -88,11 +91,11 @@ class Organization(Base, AuditMixin):
 class User(Base, AuditMixin, TenantMixin):
     __tablename__ = "user"
 
-    user_type: Mapped[UserType] = mapped_column(SAEnum(UserType,name="user_type_enum")nullable=False)  # BackOffice, Transporter, Shipper
+    user_type: Mapped[UserType] = mapped_column(SAEnum(UserType, name="user_type_enum"), nullable=False)  # BackOffice, Transporter, Shipper
     username: Mapped[str] = mapped_column(unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
-    email:Mapped[str]=mapped_column(unique=True,nullable=False)
-    phone:Mapped[Optional[str]]=mapped_column(String(20))
+    email: Mapped[str] = mapped_column(unique=True, nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String(20))
     # Relationships added in specialized user tables below
 
 
@@ -123,16 +126,16 @@ class OnboardingStep(Base,AuditMixin):
 
 class OrgUser(Base,AuditMixin):
     __tablename__="org_user"
-    id: Mapped[int]=mapped_column(Integer,primary_key=True)
-    organization_id=Mapped[int]=mapped_column(Integer,ForeignKey("organization.id"),nullable=False)
-    user_id=Mapped[int]=mapped_column(Integer,ForeignKe=("user.id"),nullable=false)
-    organization:Mapped["Organization"]=relationship("Organization",foreign_keys=[organization_id])
-    user:Mapped["User"]=relationship("User",foreign_keys=[user_id])
-    role:Mapped[Optional[OrgRole]]=mapped_column(SAEnum(OrgRole,name="org_role_enum"),nullable=True)      #  will be enum
-    permissions: Mapped(Optional[Dict[str,Any]])=mapped_column(JSONB)
-    status:Mapped[OrgUserStatus]=mapped_column(SAEnum(OrgUserStatus,name="org_user_status_enum"),default="active")  
-    created_by: Mapped[int]=mapped_column(Interger,ForeignKey=("user.id"),nullable=False)
-    creator:Mapped["User"]=relationship("User",foreign_keys=[created_by])
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    organization: Mapped["Organization"] = relationship("Organization", foreign_keys=[organization_id])
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    role: Mapped[Optional[OrgRole]] = mapped_column(SAEnum(OrgRole, name="org_role_enum"), nullable=True)      #  will be enum
+    permissions: Mapped[Optional[Dict[str,Any]]] = mapped_column(JSONB)
+    status: Mapped[OrgUserStatus] = mapped_column(SAEnum(OrgUserStatus, name="org_user_status_enum"), default="active")  
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
         
     __table_args__ = (
     UniqueConstraint("organization_id", "user_id", name="uq_org_user"),
