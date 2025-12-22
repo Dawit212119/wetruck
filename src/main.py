@@ -14,8 +14,7 @@ from src.core.exceptions import (
 )
 from src.core.settings.env import Environment
 from src.core.settings.settings import settings
-from src.api import api_router
-
+from src.api.router import api_router
 
 app = FastAPI(
     title="WeTruck API",
