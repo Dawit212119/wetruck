@@ -23,6 +23,19 @@ from src.models.models import (
     User,
     OrgUser,
     OnboardingStep,
+    SystemConfig,
+    Ship,
+    ShipItem,
+    ShipDocument,
+    ShipItemDocument,
+    LocationLog,
+    Payment,
+    Truck,
+    Driver,
+    Container,
+    GPSDevice,
+    PriceQuote,
+    Document,
 )
 
 target_metadata = Base.metadata
