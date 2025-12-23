@@ -1,0 +1,1 @@
+Place swagger-ui assets here: swagger-ui-bundle.js, swagger-ui-standalone-preset.js, swagger-ui.css. You can download from https://github.com/swagger-api/swagger-ui/releases (dist folder) when you have network access.

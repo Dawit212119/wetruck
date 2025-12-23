@@ -1,10 +1,12 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from src.middlewares.request_logging import RequestLoggingMiddleware
-from src.middlewares.security_headers import SecurityHeadersMiddleware
+from src.api import api_router
 from src.core.exceptions import (
     CustomHTTPException,
     http_exception_handler,
@@ -14,19 +16,34 @@ from src.core.exceptions import (
 )
 from src.core.settings.env import Environment
 from src.core.settings.settings import settings
-from src.api.router import api_router
+from src.middlewares.request_logging import RequestLoggingMiddleware
+from src.middlewares.security_headers import SecurityHeadersMiddleware
+
+
+SWAGGER_DIR = Path(__file__).resolve().parent / "static" / "swagger"
+use_local_swagger = SWAGGER_DIR.exists()
+
+# If local swagger assets are present, serve them to avoid proxy/CSP issues.
+swagger_kwargs = {}
+if use_local_swagger:
+    swagger_kwargs = {
+        "swagger_ui_bundle_js_url": "/static/swagger/swagger-ui-bundle.js",
+        "swagger_ui_standalone_preset_js_url": "/static/swagger/swagger-ui-standalone-preset.js",
+        "swagger_ui_css_url": "/static/swagger/swagger-ui.css",
+    }
 
 app = FastAPI(
-    title="WeTruck API",
+    title="Platform Backend API",
+    description="B2B Freight App - Organization-level Onboarding API",
     version="1.0.0",
-    description="WeTruck Freight Operations Backend API",
-    swagger_ui_parameters={
-        "persistAuthorization": True,
-    },
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    **swagger_kwargs,
 )
 
-
-# CORS configuration
+if use_local_swagger:
+    app.mount("/static/swagger", StaticFiles(directory=SWAGGER_DIR), name="swagger")
 if settings.env in (Environment.DEV, Environment.LOCAL):
     app.add_middleware(
         CORSMiddleware,
@@ -40,6 +57,8 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://dev.web.wetruck.ai:8993",
             "http://dev.web.wetruck.ai:8994",
             "http://localhost:8991",
+            "http://dev.web.wetruck.ai:8991",
+            "http://127.0.0.1:8000",
             "http://localhost:8992",
             "http://localhost:8993",
             "http://localhost:8994",
