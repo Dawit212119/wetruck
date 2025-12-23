@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declared_attr
 # Abstract mixin for audit fields + created_by / updated_by
 class AuditMixin:
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    deleted: Mapped[bool] = mapped_column(Boolean, primary_key=True)
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

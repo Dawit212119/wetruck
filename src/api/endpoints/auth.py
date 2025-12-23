@@ -11,7 +11,21 @@ from src.core.security.jwt import (
 from src.models.models import User
 from fastapi import Body
 from src.core.security.jwt import decode_token
+from src.repositories.dependencies import get_repository
+from src.repositories.user_repository import UserRepository
+
 router = APIRouter()
+
+get_user_repo = get_repository(4, UserRepository)
+
+@router.get(
+         "/list",
+    summary="list",
+    description="",
+)
+def list(repo: UserRepository = Depends(get_user_repo)):
+    return repo.list()
+    
 
 
 @router.post(
