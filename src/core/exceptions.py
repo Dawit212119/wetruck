@@ -4,6 +4,15 @@ from fastapi.responses import JSONResponse
 
 from src.core.app_logging import logger
 
+def format_validation_errors(errors):
+    field_errors = {}
+
+    for err in errors:
+        field = err["loc"][-1]
+        field_errors[field] = err["msg"]
+
+    return field_errors
+
 
 def error_response(message: str, code: str, status_code: int) -> dict:
     return {
@@ -39,21 +48,26 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         ),
     )
 
+
+
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.info(
         "Validation error",
         extra={"path": request.url.path, "errors": exc.errors()},
     )
 
-    return JSONResponse(
+    base_response = error_response(
+        message="Validation failed",
+        code="VALIDATION_ERROR",
         status_code=422,
-        content=error_response(
-            message="Validation failed",
-            code="VALIDATION_ERROR",
-            status_code=422,
-        ),
     )
 
+    base_response["fields"] = format_validation_errors(exc.errors())
+
+    return JSONResponse(
+        status_code=422,
+        content=base_response,
+    )
 
 
 async def custom_exception_handler(request: Request, exc: CustomHTTPException):
