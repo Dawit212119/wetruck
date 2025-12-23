@@ -1,14 +1,5 @@
-import logging
-import sys
+from __future__ import annotations
 
-LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format=LOG_FORMAT,
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-    ],
-)
-
-logger = logging.getLogger("wetruck")
+from aws_lambda_powertools import Logger
+from src.core.settings.settings import settings
+logger: Logger = Logger(service=f"backend-{settings.env}")

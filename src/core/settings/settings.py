@@ -1,6 +1,8 @@
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from src.core.settings.env import Environment
+
+
 class Settings(BaseSettings):
     """
     Class to hold variables settings.

@@ -4,9 +4,8 @@ from typing import Awaitable, Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
-from src.core.settings.settings import settings
 from src.core.settings.env import Environment
+from src.core.settings.settings import settings
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -30,6 +29,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Set HSTS only on HTTPS and non-local envs
         is_https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
         if is_https and settings.env in (Environment.DEV, Environment.PROD):
+            # 6 months, include subdomains, allow preload if you plan to submit
             response.headers.setdefault(
                 "Strict-Transport-Security",
                 "max-age=15552000; includeSubDomains; preload",

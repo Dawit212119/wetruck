@@ -1,17 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
-from src.core.db.session import get_db
+from src.core.db.session import get_db  # <- new session dependency
 from src.core.app_logging import logger
 
-router = APIRouter()
 
+router = APIRouter()
 
 @router.get("/check")
 def health_check(db: Session = Depends(get_db)):
     """
-    Simple health check endpoint to verify database connectivity.
+    Simple health check endpoint to verify database connectivity using the new session.
     """
     try:
         result = db.execute(text("SELECT 1"))
@@ -20,4 +19,8 @@ def health_check(db: Session = Depends(get_db)):
         return {"status": "ok", "db": f"connected, result: {row[0]}"}
     except Exception as e:
         logger.exception("DB connection failed")
-        return {"status": "error", "db": str(e)}
+        return {"status": "error", "db": f"error: {str(e)}"}
+
+
+
+

@@ -23,7 +23,7 @@ class TenantMixin:
     @declared_attr
     def organization_id(cls) -> Mapped[int]:
         return mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
-    
+
     @declared_attr
     def organization(cls):
         # Explicitly specify the foreign key to avoid ambiguity when multiple FKs to Organization exist
@@ -93,6 +93,7 @@ class ShipItemDocument(Base, AuditMixin, TenantMixin):
     ship_item_id: Mapped[int] = mapped_column(Integer, ForeignKey("ship_item.id"), nullable=False)
     ship_item = relationship("ShipItem", back_populates="ship_item_documents")
 
+
 class LocationLog(Base, AuditMixin, TenantMixin):
     __tablename__ = "location_log"
     ship_item_id: Mapped[int] = mapped_column(Integer, ForeignKey("ship_item.id"), nullable=False)
@@ -133,7 +134,7 @@ class Document(Base, AuditMixin, TenantMixin):
     truck_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("truck.id"), nullable=True)
     driver_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("driver.id"), nullable=True)
     direct_organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization.id"), nullable=True)
-    
+
     truck = relationship("Truck", back_populates="documents")
     driver = relationship("Driver", back_populates="documents")
     direct_organization = relationship("Organization", foreign_keys=[direct_organization_id])
