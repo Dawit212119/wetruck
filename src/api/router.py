@@ -5,7 +5,7 @@ from src.api.endpoints import health, auth, admin, shipper, transporter
 # auth dependency
 from src.core.security.dependencies import get_current_user
 
-api_router = APIRouter()
+api_router = APIRouter(prefix="/api/v1")
 
 # Public routes
 api_router.include_router(health.router, prefix="/health", tags=["Health"])
