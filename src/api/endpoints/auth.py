@@ -45,6 +45,13 @@ def login(
             detail="Invalid email or password",
         )
 
+     # Check if role matches
+    if user.user_type != payload.role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User role mismatch",
+        )
+
     access_token = create_access_token(
         subject=str(user.id),
         role=user.user_type,
