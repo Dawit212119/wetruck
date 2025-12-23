@@ -12,6 +12,9 @@ from sqlalchemy.orm import selectinload
 
 from src.core.db.session import get_db
 from src.core.dependencies import get_current_admin_user
+from src.core.security.dependencies import require_roles
+from src.core.security.roles import Roles
+from src.core.security.password import hash_password
 from src.core.exceptions import CustomHTTPException
 from src.models.models import User, SystemConfig, Organization
 from src.schemas.admin import (
@@ -25,16 +28,6 @@ from src.schemas.admin import (
 from src.schemas.onboarding import MessageResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def hash_password(password: str) -> str:
-    """
-    Hash password using bcrypt.
-    TODO: Replace with proper bcrypt implementation for production
-    """
-    import hashlib
-    # Temporary implementation - MUST be replaced with bcrypt for production
-    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def now_utc() -> datetime:
@@ -68,6 +61,20 @@ def validate_config_value(config_key: str, config_value: Any) -> None:
 
 
 # CS User Management Endpoints
+router.get(
+    "/dashboard",
+    summary="Admin dashboard",
+    description="Access administrator-only dashboard resources",
+)
+def dashboard(
+    user=Depends(require_roles(Roles.ADMIN)),
+):
+    return {
+        "message": "Admin dashboard access granted",
+        "role": user["role"],
+        "user_id": user["sub"],
+    }
+
 @router.post("/cs-users", response_model=CSUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_cs_user(
     request: CreateCSUserRequest,
@@ -435,4 +442,3 @@ async def upsert_config_item(
         updated_by=config.updated_by,
         updated_at=config.updated_at
     )
-

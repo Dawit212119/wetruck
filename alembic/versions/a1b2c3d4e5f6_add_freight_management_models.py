@@ -192,3 +192,4 @@ def downgrade() -> None:
     op.drop_table('truck')
     op.drop_table('gps_device')
 
+

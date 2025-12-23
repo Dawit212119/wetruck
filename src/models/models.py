@@ -13,6 +13,7 @@ class Base(DeclarativeBase):
 class AuditMixin:
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -192,10 +193,10 @@ class SystemConfig(Base):
     # Relationships
     updater: Mapped[Optional["User"]] = relationship("User", foreign_keys=[updated_by])
 
-
 class Ship(Base, AuditMixin, TenantMixin):
     __tablename__ = "ship"
     shipper_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
+    shipper = relationship("Organization", foreign_keys=[shipper_id])
     shipper = relationship("Organization", foreign_keys=[shipper_id])
     ship_items = relationship("ShipItem", back_populates="ship")
     ship_documents = relationship("ShipDocument", back_populates="ship")
@@ -211,6 +212,7 @@ class ShipItem(Base, AuditMixin, TenantMixin):
     truck = relationship("Truck")
     driver = relationship("Driver")
     container = relationship("Container")
+    transporter = relationship("Organization", foreign_keys=[transporter_id])
     transporter = relationship("Organization", foreign_keys=[transporter_id])
     ship_item_documents = relationship("ShipItemDocument", back_populates="ship_item")
     location_logs = relationship("LocationLog", back_populates="ship_item")
@@ -250,6 +252,7 @@ class Driver(Base, AuditMixin, TenantMixin):
 class Container(Base, AuditMixin, TenantMixin):
     __tablename__ = "container"
     pass
+    pass
 
 class GPSDevice(Base, AuditMixin, TenantMixin):
     __tablename__ = "gps_device"
@@ -270,5 +273,7 @@ class Document(Base, AuditMixin, TenantMixin):
 
     truck = relationship("Truck", back_populates="documents")
     driver = relationship("Driver", back_populates="documents")
+    direct_organization = relationship("Organization", foreign_keys=[direct_organization_id])
+    # tenant "organization" relationship + organization_id column come from TenantMixin (mandatory)
     direct_organization = relationship("Organization", foreign_keys=[direct_organization_id])
     # tenant "organization" relationship + organization_id column come from TenantMixin (mandatory)

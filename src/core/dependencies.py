@@ -1,60 +1,63 @@
 """
 Dependencies for route protection and authentication.
 """
-from fastapi import Depends, HTTPException, status, Header
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from typing import Optional
 
+from fastapi import Depends, Header, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.core.db.session import get_db
-from src.models.models import User
 from src.core.exceptions import CustomHTTPException
+from src.core.security.dependencies import get_current_user
+from src.core.security.roles import Roles
+from src.models.models import User
 
 
 async def get_current_admin_user(
-    x_user_id: Optional[str] = Header(None, alias="X-User-Id"),
-    db: AsyncSession = Depends(get_db)
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """
-    Dependency to get and verify the current admin user.
-    In production, this would verify JWT tokens. For now, expects X-User-Id header.
+    Dependency that validates the caller has an admin role and returns the user model.
+    Uses the JWT decoded by get_current_user (expects fields: sub, role).
     """
-    if not x_user_id:
+    # Role check from token payload
+    if user.get("role") != Roles.ADMIN:
         raise CustomHTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            msg="Missing X-User-Id header"
+            status_code=status.HTTP_403_FORBIDDEN,
+            msg="Admin access required",
         )
-    
+
+    # Fetch user from DB to ensure it exists and is active
     try:
-        user_id = int(x_user_id)
-    except ValueError:
+        user_id = int(user.get("sub"))
+    except (TypeError, ValueError):
         raise CustomHTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            msg="Invalid user ID format"
+            msg="Invalid user identifier",
         )
-    
+
     result = await db.execute(select(User).filter(User.id == user_id))
-    user = result.scalar_one_or_none()
-    
-    if not user:
+    db_user: Optional[User] = result.scalar_one_or_none()
+
+    if not db_user:
         raise CustomHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            msg="User not found"
+            msg="User not found",
         )
-    
-    # Check if user is admin
-    if user.user_type not in ("super_admin"):
+
+    if db_user.user_type != Roles.ADMIN:
         raise CustomHTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            msg="Super Admin access required"
+            msg="Admin access required",
         )
-    
-    # Check if user is active
-    if user.status != "active":
+
+    if db_user.status != "active":
         raise CustomHTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            msg="User account is suspended"
+            msg="User account is suspended",
         )
-    
-    return user
+
+    return db_user
 

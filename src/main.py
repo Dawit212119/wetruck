@@ -1,15 +1,23 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from src.core.settings.env import Environment
+
 from src.api import api_router
-from src.core.exceptions import CustomHTTPException, custom_http_exception_handler
-from src.middlewares import ExceptionHandlerMiddleware
-from src.middlewares.security_headers import SecurityHeadersMiddleware
+from src.core.exceptions import (
+    CustomHTTPException,
+    http_exception_handler,
+    validation_exception_handler,
+    custom_exception_handler,
+    unhandled_exception_handler,
+)
+from src.core.settings.env import Environment
 from src.core.settings.settings import settings
+from src.middlewares.request_logging import RequestLoggingMiddleware
+from src.middlewares.security_headers import SecurityHeadersMiddleware
 
 
 SWAGGER_DIR = Path(__file__).resolve().parent / "static" / "swagger"
@@ -54,12 +62,13 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://localhost:8992",
             "http://localhost:8993",
             "http://localhost:8994",
-            "http://localhost:5173"
+            "http://localhost:5173",
         ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 elif settings.env == Environment.PROD:
     app.add_middleware(
         CORSMiddleware,
@@ -74,6 +83,7 @@ elif settings.env == Environment.PROD:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
 else:
     app.add_middleware(
         CORSMiddleware,
@@ -90,10 +100,26 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# -------------------------
+# Middleware
+# -------------------------
+
+# Logs method, path, IP, status code
+app.add_middleware(RequestLoggingMiddleware)
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(ExceptionHandlerMiddleware)
-app.add_exception_handler(CustomHTTPException, custom_http_exception_handler)
+
+# -------------------------
+# Global Exception Handlers
+# -------------------------
+app.add_exception_handler(CustomHTTPException, custom_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
+
+# -------------------------
+# Routes
+# -------------------------
 app.include_router(api_router)
-
-

@@ -1,5 +1,15 @@
-from __future__ import annotations
+"""
+Middleware package for FastAPI application.
 
-from .exception_handler import ExceptionHandlerMiddleware
+This package contains custom middleware implementations:
+- RequestLoggingMiddleware: Logs HTTP requests with method, path, IP, status code, and duration
+- SecurityHeadersMiddleware: Adds security headers to HTTP responses
+"""
 
-__all__ = ["ExceptionHandlerMiddleware"]
+from .request_logging import RequestLoggingMiddleware
+from .security_headers import SecurityHeadersMiddleware
+
+__all__ = [
+    "RequestLoggingMiddleware",
+    "SecurityHeadersMiddleware",
+]
