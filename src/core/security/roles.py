@@ -1,4 +1,4 @@
 class Roles:
-    ADMIN = "admin"
+    ADMIN = "super_admin"
     SHIPPER = "shipper"
     TRANSPORTER = "transporter"

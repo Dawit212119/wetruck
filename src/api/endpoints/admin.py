@@ -61,7 +61,7 @@ def validate_config_value(config_key: str, config_value: Any) -> None:
 
 
 # CS User Management Endpoints
-router.get(
+@router.get(
     "/dashboard",
     summary="Admin dashboard",
     description="Access administrator-only dashboard resources",
