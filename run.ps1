@@ -18,3 +18,6 @@ if (Test-Path $projectPath) {
     exit 1
 }
 
+
+
+
