@@ -1,10 +1,13 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import String  # Added for document_type
+
+from src.api.schemas.truck import TruckStatusEnum, TruckTypeEnum
 from src.core.db.session import Base
-from sqlalchemy import Column, Integer, Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, Boolean, Date, DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy import Enum as SAEnum
 
 # Abstract mixin for audit fields + created_by / updated_by
 class AuditMixin:
@@ -106,9 +109,51 @@ class Payment(Base, AuditMixin, TenantMixin):
 
 class Truck(Base, AuditMixin, TenantMixin):
     __tablename__ = "truck"
+
+    # Enums (assuming you use StrEnum for string values)
+    status: Mapped[TruckStatusEnum] = mapped_column(
+        SAEnum(TruckStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=TruckStatusEnum.INACTIVE,
+    )
+
+    truck_type: Mapped[TruckTypeEnum] = mapped_column(
+        SAEnum(TruckTypeEnum, native_enum=False, length=50),
+        nullable=False,
+    )
+
+    # Unique identifiers – make them explicit strings with appropriate lengths/indexes
+    vin: Mapped[str] = mapped_column(
+        String(17),  # VIN is always exactly 17 characters
+        unique=True,
+        nullable=False,  # VIN should never be null for a real truck
+        index=True,
+    )
+
+    plate_number: Mapped[str] = mapped_column(
+        String(20),  # Accommodates formats like "ABC-123" or international plates
+        unique=True,
+        nullable=False,  # Plate is required for registered trucks
+        index=True,
+    )
+
+    registration_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    gov_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    make: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    year: Mapped[Optional[int]] = mapped_column(nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    capacity_quintal: Mapped[int] = mapped_column(nullable=False)
+
+    libre_key: Mapped[Optional[str]] = mapped_column(nullable=True)
+
     gps_device_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("gps_device.id"))
     gps_device = relationship("GPSDevice", uselist=False)
     documents = relationship("Document", back_populates="truck")
+
 
 class Driver(Base, AuditMixin, TenantMixin):
     __tablename__ = "driver"

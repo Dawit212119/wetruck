@@ -2,11 +2,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+import uvicorn
 
+from src.core.exception.database_exceptions import DatabaseException
 from src.middlewares.request_logging import RequestLoggingMiddleware
 from src.middlewares.security_headers import SecurityHeadersMiddleware
 from src.core.exceptions import (
     CustomHTTPException,
+    database_exception_handler,
     http_exception_handler,
     validation_exception_handler,
     custom_exception_handler,
@@ -100,7 +103,29 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
+app.add_exception_handler(
+    DatabaseException,
+    database_exception_handler,
+)
 # -------------------------
 # Routes
 # -------------------------
 app.include_router(api_router)
+
+
+def main():
+    """
+    Entry point to run the FastAPI application using Uvicorn.
+    """
+    uvicorn.run(
+        "main:app",          # module path – adjust if main.py is moved
+        host="0.0.0.0",          # accessible from outside (e.g., Docker, network)
+        port=8000,
+        reload=True,             # enable auto-reload in development
+        log_level="info",        # or "debug" for more verbose
+        workers=1,               # increase in production (e.g., 4)
+    )
+
+
+if __name__ == "__main__":
+    main()
