@@ -4,7 +4,8 @@ from sqlalchemy.orm import declarative_base
 # Use the provided DATABASE_URL from spec
 # Convert postgresql:// to postgresql+asyncpg:// for async operations
 # Note: Remove sslmode from URL as asyncpg doesn't support it as a query parameter
-DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_SPoQi2u9lcLJ@ep-snowy-dust-a44okve2-pooler.us-east-1.aws.neon.tech/neondb"
+# DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_SPoQi2u9lcLJ@ep-snowy-dust-a44okve2-pooler.us-east-1.aws.neon.tech/neondb"
+DATABASE_URL = "postgresql+asyncpg://postgres:13399955@localhost/proddb"
 
 # Create async engine with SSL configuration for asyncpg
 # asyncpg requires SSL to be passed as 'ssl' parameter, not 'sslmode'
@@ -12,7 +13,7 @@ DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_SPoQi2u9lcLJ@ep-snowy-dust
 async_engine = create_async_engine(
     DATABASE_URL,
     connect_args={
-        "ssl": True  # asyncpg uses 'ssl=True' for SSL-required connections (Neon requires SSL)
+        # "ssl": True  # asyncpg uses 'ssl=True' for SSL-required connections (Neon requires SSL)
     },
     echo=False,
     future=True
