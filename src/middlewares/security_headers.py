@@ -4,8 +4,9 @@ from typing import Awaitable, Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from src.core.settings.env import Environment
+
 from src.core.settings.settings import settings
+from src.core.settings.env import Environment
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -35,18 +36,37 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "max-age=15552000; includeSubDomains; preload",
             )
 
-        # Content Security Policy
-        csp = (
-            "default-src 'self'; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "object-src 'none'; "
-            "img-src 'self' data:; "
-            "style-src 'self' 'unsafe-inline' https:; "
-            "script-src 'self' 'unsafe-inline' https:; "
-            "connect-src 'self' https:; "
-            "form-action 'self'"
-        )
+        # Content Security Policy: conservative default; adjust as your frontends require
+        # Allow Swagger UI CDN resources for /docs endpoint
+        is_docs_endpoint = str(request.url.path).startswith("/docs") or str(request.url.path).startswith("/redoc") or str(request.url.path).startswith("/openapi.json")
+        
+        if is_docs_endpoint:
+            # Very permissive CSP for docs endpoints - allow all resources over https and self
+            # This avoids CSP blocking, but proxy issues still need to be handled separately.
+            csp = (
+                "default-src 'self' https:; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+                "style-src 'self' 'unsafe-inline' https:; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data: https:; "
+                "connect-src 'self' https:; "
+                "frame-ancestors 'none'; "
+                "form-action 'self'"
+            )
+        else:
+            # Conservative CSP for other endpoints
+            csp = (
+                "default-src 'self'; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "object-src 'none'; "
+                "img-src 'self' data:; "
+                "style-src 'self' 'unsafe-inline' https:; "
+                "script-src 'self' 'unsafe-inline' https:; "
+                "connect-src 'self' https:; "
+                "form-action 'self'"
+            )
+        # Don't override if upstream already set a custom CSP
         response.headers.setdefault("Content-Security-Policy", csp)
 
         return response

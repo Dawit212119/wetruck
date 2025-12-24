@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.api.schemas.auth import LoginRequest
 from src.core.db.session import get_db
@@ -7,10 +8,9 @@ from src.core.security.password import verify_password
 from src.core.security.jwt import (
     create_access_token,
     create_refresh_token,
+    decode_token,
 )
 from src.models.models import User
-from fastapi import Body
-from src.core.security.jwt import decode_token
 from src.repositories.dependencies import get_repository
 from src.repositories.user_repository import UserRepository
 
@@ -33,11 +33,14 @@ def list(repo: UserRepository = Depends(get_user_repo)):
     summary="Login",
     description="Authenticate using email and password",
 )
-def login(
+async def login(
     payload: LoginRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    user = db.query(User).filter(User.username == payload.email).first()
+    result = await db.execute(
+        select(User).filter(User.username == payload.email)
+    )
+    user = result.scalar_one_or_none()
 
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(
@@ -45,7 +48,7 @@ def login(
             detail="Invalid email or password",
         )
 
-     # Check if role matches
+    # Check if role matches
     if user.user_type != payload.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -72,9 +75,9 @@ def login(
     "/refresh",
     summary="Refresh access token",
 )
-def refresh_token(
+async def refresh_token(
     refresh_token: str = Body(..., embed=True),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     payload = decode_token(refresh_token)
 
@@ -84,7 +87,10 @@ def refresh_token(
             detail="Invalid refresh token",
         )
 
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    result = await db.execute(
+        select(User).filter(User.id == int(payload["sub"]))
+    )
+    user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
