@@ -247,6 +247,12 @@ class Truck(Base, AuditMixin, TenantMixin):
 
 class Driver(Base, AuditMixin, TenantMixin):
     __tablename__ = "driver"
+    first_name: Mapped[Optional[str]] = mapped_column(String(100))
+    last_name: Mapped[Optional[str]] = mapped_column(String(100))
+    phone_number: Mapped[Optional[str]] = mapped_column(String(20),unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    driver_license_number: Mapped[Optional[str]] = mapped_column(String(100),unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="active")  # active|suspended
     documents = relationship("Document", back_populates="driver")
 
 class Container(Base, AuditMixin, TenantMixin):

@@ -16,7 +16,9 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from src.core.db.session import Base
+# from src.core.db.session import Base
+from src.models.models import Base
+
 # Import all models so Alembic can detect them
 from src.models.models import (
     Organization,
