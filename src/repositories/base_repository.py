@@ -175,7 +175,7 @@ class BaseRepository(ABC, Generic[ModelType]):
         per_page: int = 20,
         filters: Optional[Dict[str, Any]] = None,
         order_by: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+    ) -> GenericResponse[ModelType]:
         filters = filters or {}
         page = max(page, 1)
         per_page = min(max(per_page, 1), 100)
@@ -200,4 +200,5 @@ class BaseRepository(ABC, Generic[ModelType]):
         count_stmt = self._apply_filters(count_stmt, filters)
         total = self.db.scalar(count_stmt)
 
-        return GenericResponse(items=items, total=total, page=page, per_page = per_page, pages = (total + per_page - 1) // per_page if total else 0)
+        pages = (total + per_page - 1) // per_page if total else 0
+        return items, total, page, per_page, pages

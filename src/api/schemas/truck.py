@@ -1,10 +1,12 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List, Optional
 from datetime import date
 
 from enum import Enum
 from enum import IntEnum
+
+from src.api.schemas.generic import PaginatedResponse
 
 
 class TruckStatusEnum(Enum):
@@ -20,6 +22,8 @@ class TruckTypeEnum(Enum):
 
 
 class TruckBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     status: TruckStatusEnum
     truck_type: TruckTypeEnum
     vin: str = Field(..., max_length=17)
@@ -58,3 +62,8 @@ class TruckRead(TruckBase):
 
     class Config:
         from_attributes = True  # for ORM mode
+
+
+
+class TruckPaginatedResponse(PaginatedResponse):
+    items: List[TruckRead]

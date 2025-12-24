@@ -1,9 +1,11 @@
 # api/truck_router.py
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
-from src.api.schemas.truck import TruckCreate, TruckStatusEnum, TruckTypeEnum, TruckUpdate, TruckRead
+from src.api.schemas.generic import GenericCUDResponse, GenericResponse
+from src.api.schemas.truck import TruckCreate, TruckPaginatedResponse, TruckStatusEnum, TruckTypeEnum, TruckUpdate, TruckRead
+from src.models.models import Truck
 from src.repositories.dependencies import get_repository
 from src.repositories.truck_repository import TruckRepository
 # from dependencies import get_db, get_current_organization_id  # your auth/tenant dependency
@@ -12,47 +14,53 @@ router = APIRouter()
 
 get_truck_repo = get_repository(4,TruckRepository)
 
-@router.post("/", response_model=TruckRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_truck(
-    truck_in: TruckCreate,
+    req: TruckCreate,
     repo: TruckRepository = Depends(get_truck_repo)
 ):
-    truck_dict = truck_in.model_dump()
-    return repo.create(truck_dict)
+    return GenericCUDResponse(
+        status=True,
+        success_message="Truck created successfully",
+        result=TruckRead.model_validate(repo.create(req.model_dump())).model_dump()
+    )
 
-@router.get("/{truck_id}", response_model=TruckRead)
+@router.get("/{id}", response_model=TruckRead)
 def get_truck(
-    truck_id: int,
+    id: int,
     repo: TruckRepository = Depends(get_truck_repo)
 ):
-    truck = repo.get(truck_id)
+    truck = repo.get(id)
     if not truck:
         raise HTTPException(status_code=404, detail="Truck not found")
     return truck
 
-@router.patch("/{truck_id}", response_model=TruckRead)
+@router.patch("/{id}", response_model=TruckRead)
 def update_truck(
-    truck_id: int,
-    truck_in: TruckUpdate,
+    id: int,
+    req: TruckUpdate,
     repo: TruckRepository = Depends(get_truck_repo)
 ):
-    update_data = truck_in.model_dump(exclude_unset=True)
-    truck = repo.update(truck_id, update_data)
+    update_data = req.model_dump(exclude_unset=True)
+    truck = repo.update(id, update_data)
     if not truck:
         raise HTTPException(status_code=404, detail="Truck not found")
     return truck
 
-@router.delete("/{truck_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_truck(
-    truck_id: int,
+    id: int,
     repo: TruckRepository = Depends(get_truck_repo)
 ):
-    success = repo.soft_delete(truck_id)
+    success = repo.soft_delete(id)
     if not success:
         raise HTTPException(status_code=404, detail="Truck not found or already deleted")
     return None
 
-@router.get("/")
+def build_filters(**kwargs) -> dict:
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+@router.get("/", response_model=TruckPaginatedResponse)
 def list_trucks(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -71,19 +79,29 @@ def list_trucks(
     gps_device_id: Optional[int] = None,
     repo: TruckRepository = Depends(get_truck_repo),
 ):
-    filters = {
-        "status": status,
-        "truck_type": truck_type,
-        "vin": vin,
-        "plate_number": plate_number,
-        "make": make,
-        "model": model,
-        "year": year,
-        "color": color,
-        "capacity_quintal": capacity_quintal,
-        "registration_date": registration_date,
-        "gov_id": gov_id,
-        "gps_device_id": gps_device_id,
-    }
+    filters = build_filters(
+        status=status,
+        truck_type=truck_type,
+        vin=vin,
+        plate_number=plate_number,
+        make=make,
+        model=model,
+        year=year,
+        color=color,
+        capacity_quintal=capacity_quintal,
+        registration_date=registration_date,
+        gov_id=gov_id,
+        gps_device_id=gps_device_id,
+    )
 
-    return repo.paginated_list(page=page, per_page=per_page, filters=filters)
+    items, total, page, per_page, pages = repo.paginated_list(page=page, per_page=per_page, filters=filters)
+
+    return TruckPaginatedResponse(
+        status=True,
+        message="Trucks fetched successfully",
+        items=items,
+        total=total,
+        page=page,
+        pages=pages,
+        per_page=per_page
+    )
