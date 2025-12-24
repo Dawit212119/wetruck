@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy import Select, String, Integer, Boolean, Date, DateTime, Enum
 
 from src.api.schemas.generic import GenericResponse
-from src.core.exception.database_exceptions import map_sqlalchemy_exception
+from src.core.exception.database_exceptions import DatabaseException, map_sqlalchemy_exception
 
 ModelType = TypeVar("ModelType")
 
@@ -23,7 +23,7 @@ class BaseRepository(ABC, Generic[ModelType]):
 
     model: type[ModelType]  # Will be set by the generic subclass
 
-    def __init__(self, db: Session, organization_id: int):
+    def __init__(self, db: Session, organization_id: Optional[int]):
         self.db = db
         self.organization_id = organization_id
 
@@ -87,10 +87,10 @@ class BaseRepository(ABC, Generic[ModelType]):
         stmt = self._apply_tenant_scope(stmt)
         stmt = self._apply_deleted_filter(stmt, deleted)
 
-        try:
+        def action():
             return self.db.scalars(stmt).one()
-        except NoResultFound:
-            return None
+        return self._execute(action)
+
 
     def list(
         self,
@@ -112,18 +112,21 @@ class BaseRepository(ABC, Generic[ModelType]):
         )
         stmt = self._apply_tenant_scope(stmt)
 
-        obj = self.db.scalars(stmt).first()
-        if not obj:
-            return None
+        # obj = self.db.scalars(stmt).first()
+        # if not obj:
+        #     return None
+        def action():
+            obj = self.db.scalars(stmt).one()
 
-        for key, value in obj_in.items():
-            if hasattr(obj, key):
-                setattr(obj, key, value)
+            for key, value in obj_in.items():
+                if hasattr(obj, key):
+                    setattr(obj, key, value)
 
-        self.db.commit()
-        self.db.refresh(obj)
-        return obj
-
+            self.db.commit()
+            self.db.refresh(obj)
+            return obj
+        return self._execute(action)
+    
     def soft_delete(self, id: int) -> bool:
         stmt = (
             update(self.model)

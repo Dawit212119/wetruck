@@ -1,15 +1,17 @@
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import String  # Added for document_type
-
-from src.api.schemas.truck import TruckStatusEnum, TruckTypeEnum
+from sqlalchemy import String
 from src.core.db.session import Base
 from sqlalchemy import Column, Integer, Boolean, Date, DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy import Enum as SAEnum
 
-# Abstract mixin for audit fields + created_by / updated_by
+from src.domain.enums.organization import OrganizationTypeEnum
+from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum
+from src.domain.enums.user import UserStatusEnum, UserTypeEnum
+
+
 class AuditMixin:
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -20,6 +22,7 @@ class AuditMixin:
         onupdate=func.now(),
         nullable=False
     )
+
 
 # Mixin for models that belong to an Organization (multi-tenant scope)
 class TenantMixin:
@@ -32,165 +35,65 @@ class TenantMixin:
         # Explicitly specify the foreign key to avoid ambiguity when multiple FKs to Organization exist
         return relationship("Organization", foreign_keys=[cls.organization_id])
 
-# Enums
-class OrganizationType(str, Enum):
-    SHIPPER = "Shipper"
-    TRANSPORTER = "Transporter"
 
-
-class UserType(str, Enum):
-    BACKOFFICE = "backoffice"
-    SHIPPER = "shipper"
-    TRANSPORTER = "transporter"
-    ADMIN = "admin"
-    CS = "cs"
-
-
-class OrgRole(str, Enum):
-    OWNER = "owner"
-    MANAGER = "manager"
-    DISPATCHER = "dispatcher"
-    VIEWER = "viewer"
-
-
-class OrgUserStatus(str, Enum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-
-
-class OnboardingStatus(str, Enum):
-    IN_PROGRESS = "in_progress"
-    COMPLETE = "complete"
-
-
-class OnboardingStepType(str, Enum):
-    PROFILE_BASICS = "profile_basics"
-    PAYMENT_PREFERENCES = "payment_preferences"
-    ROUTE_PREFERENCES = "route_preferences"
-    TUTORIAL = "tutorial"
-
-
-# Models
-class Organization(Base):
+class Organization(Base, AuditMixin):
     __tablename__ = "organization"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    type: Mapped[str] = mapped_column(String(50), nullable=False)  # Shipper|Transporter
-    name: Mapped[Optional[str]] = mapped_column(String(255))
-    company_email: Mapped[Optional[str]] = mapped_column(String(255))
-    company_phone: Mapped[Optional[str]] = mapped_column(String(50))
-    onboarding_status: Mapped[str] = mapped_column(String(50), default="in_progress")
-    onboarding_step: Mapped[Optional[str]] = mapped_column(String(50))
-    onboarding_completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+    type: Mapped[OrganizationTypeEnum] = mapped_column(
+        SAEnum(OrganizationTypeEnum, native_enum=False, length=50),
         nullable=False
     )
-
-    # Relationships
-    users: Mapped[List["User"]] = relationship("User", back_populates="organization")
-    org_users: Mapped[List["OrgUser"]] = relationship("OrgUser", back_populates="organization")
-    onboarding_steps: Mapped[List["OnboardingStep"]] = relationship("OnboardingStep", back_populates="organization")
+    name: Mapped[Optional[str]] = mapped_column(String(255))
+    email: Mapped[Optional[str]] = mapped_column(String(255))
+    phone: Mapped[Optional[str]] = mapped_column(String(50))
 
 
-class User(Base):
+class User(Base, AuditMixin):
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
-    user_type: Mapped[str] = mapped_column(String(50), nullable=False)  # backoffice|shipper|transporter|admin|cs
+    user_type: Mapped[UserTypeEnum] = mapped_column(
+        SAEnum(UserTypeEnum, native_enum=False, length=50),
+        nullable=False
+    )
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String(20))
     first_name: Mapped[Optional[str]] = mapped_column(String(100))
     last_name: Mapped[Optional[str]] = mapped_column(String(100))
-    status: Mapped[str] = mapped_column(String(50), default="active")  # active|suspended
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
+    status: Mapped[UserStatusEnum] = mapped_column(
+        SAEnum(UserStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=UserStatusEnum.ACTIVE,
     )
+
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("organization.id"),
+        nullable=True,
+    )
+
+    organization = relationship("Organization")
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="users")
-    org_users: Mapped[List["OrgUser"]] = relationship(
-        "OrgUser",
-        back_populates="user",
-        primaryjoin="User.id == OrgUser.user_id"  # Explicitly specify join condition to disambiguate from created_by FK
-    )
+    backoffice = relationship("BackOffice", back_populates="user", uselist=False)
+    transporter_user = relationship("TransporterUser", back_populates="user", uselist=False)
+    shipper_user = relationship("ShipperUser", back_populates="user", uselist=False)
 
+class BackOffice(Base):
+    __tablename__ = "backoffice_user"
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
+    user = relationship("User", back_populates="backoffice")
 
-class OrgUser(Base):
-    __tablename__ = "org_user"
+class TransporterUser(Base):
+    __tablename__ = "transporter_user"
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
+    user = relationship("User", back_populates="transporter_user")
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
-    role: Mapped[str] = mapped_column(String(50), nullable=False)  # owner|manager|dispatcher|viewer
-    permissions: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)
-    status: Mapped[str] = mapped_column(String(50), default="active")  # active|suspended
-    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
-    )
-
-    # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="org_users")
-    user: Mapped["User"] = relationship("User", back_populates="org_users", foreign_keys=[user_id])
-    creator: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by])
-
-
-class OnboardingStep(Base):
-    __tablename__ = "onboarding_steps"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organization.id"), nullable=False)
-    role: Mapped[str] = mapped_column(String(50), nullable=False)  # shipper|transporter
-    current_step: Mapped[Optional[str]] = mapped_column(String(50))  # profile_basics|payment_preferences|route_preferences|tutorial
-    completed_steps: Mapped[Optional[List[str]]] = mapped_column(JSONB)
-    step_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)
-    status: Mapped[str] = mapped_column(String(50), default="in_progress")  # in_progress|complete
-    is_complete: Mapped[bool] = mapped_column(Boolean, default=False)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
-    )
-
-    # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="onboarding_steps")
-
-
-class SystemConfig(Base):
-    __tablename__ = "system_config"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    config_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    config_value: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user.id"), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
-    )
-
-    # Relationships
-    updater: Mapped[Optional["User"]] = relationship("User", foreign_keys=[updated_by])
+class ShipperUser(Base):
+    __tablename__ = "shipper_user"
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), primary_key=True)
+    user = relationship("User", back_populates="shipper_user")
 
 class Ship(Base, AuditMixin, TenantMixin):
     __tablename__ = "ship"
@@ -198,6 +101,7 @@ class Ship(Base, AuditMixin, TenantMixin):
     shipper = relationship("Organization", foreign_keys=[shipper_id])
     ship_items = relationship("ShipItem", back_populates="ship")
     ship_documents = relationship("ShipDocument", back_populates="ship")
+
 
 class ShipItem(Base, AuditMixin, TenantMixin):
     __tablename__ = "ship_item"
@@ -215,10 +119,12 @@ class ShipItem(Base, AuditMixin, TenantMixin):
     location_logs = relationship("LocationLog", back_populates="ship_item")
     payments = relationship("Payment", back_populates="ship_item")
 
+
 class ShipDocument(Base, AuditMixin):
     __tablename__ = "ship_document"
     ship_id: Mapped[int] = mapped_column(Integer, ForeignKey("ship.id"), nullable=False)
     ship = relationship("Ship", back_populates="ship_documents")
+
 
 class ShipItemDocument(Base, AuditMixin, TenantMixin):
     __tablename__ = "ship_item_document"
@@ -231,10 +137,12 @@ class LocationLog(Base, AuditMixin, TenantMixin):
     ship_item_id: Mapped[int] = mapped_column(Integer, ForeignKey("ship_item.id"), nullable=False)
     ship_item = relationship("ShipItem", back_populates="location_logs")
 
+
 class Payment(Base, AuditMixin, TenantMixin):
     __tablename__ = "payment"
     ship_item_id: Mapped[int] = mapped_column(Integer, ForeignKey("ship_item.id"), nullable=False)
     ship_item = relationship("ShipItem", back_populates="payments")
+
 
 class Truck(Base, AuditMixin, TenantMixin):
     __tablename__ = "truck"
@@ -288,17 +196,21 @@ class Driver(Base, AuditMixin, TenantMixin):
     __tablename__ = "driver"
     documents = relationship("Document", back_populates="driver")
 
+
 class Container(Base, AuditMixin, TenantMixin):
     __tablename__ = "container"
     pass
+
 
 class GPSDevice(Base, AuditMixin, TenantMixin):
     __tablename__ = "gps_device"
     pass
 
+
 class PriceQuote(Base, AuditMixin, TenantMixin):
     __tablename__ = "price_quote"
     pass
+
 
 class Document(Base, AuditMixin, TenantMixin):
     __tablename__ = "document"

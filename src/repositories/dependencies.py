@@ -1,15 +1,15 @@
 # dependencies.py
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from typing import Type
+from typing import Type, Optional
 from src.core.db.session import get_db
-from src.core.security.dependencies import get_current_user
-from src.models.models import User
+# from src.core.security.dependencies import get_current_user
+# from src.models.models import User
 from src.repositories.base_repository import BaseRepository
 from src.repositories.base_repository import ModelType
 # from src.core.context import get_current_organization_id
 def get_repository(
-    organization_id: int,
+    organization_id: Optional[int],
     repo_cls: Type[BaseRepository[ModelType]],
 ):
     def _get_repo(

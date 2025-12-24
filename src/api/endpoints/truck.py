@@ -2,10 +2,11 @@
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Dict, Any, List, Optional
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
 from src.api.schemas.generic import GenericCUDResponse, GenericResponse
 from src.api.schemas.truck import TruckCreate, TruckPaginatedResponse, TruckStatusEnum, TruckTypeEnum, TruckUpdate, TruckRead
-from src.models.models import Truck
+# from src.models.models import Truck
+from src.core.api_utils import build_filters
 from src.repositories.dependencies import get_repository
 from src.repositories.truck_repository import TruckRepository
 # from dependencies import get_db, get_current_organization_id  # your auth/tenant dependency
@@ -35,17 +36,18 @@ def get_truck(
         raise HTTPException(status_code=404, detail="Truck not found")
     return truck
 
-@router.patch("/{id}", response_model=TruckRead)
-def update_truck(
+@router.patch("/{id}")
+def update(
     id: int,
     req: TruckUpdate,
     repo: TruckRepository = Depends(get_truck_repo)
 ):
     update_data = req.model_dump(exclude_unset=True)
-    truck = repo.update(id, update_data)
-    if not truck:
-        raise HTTPException(status_code=404, detail="Truck not found")
-    return truck
+    return GenericCUDResponse(
+        status=True,
+        success_message="Updated successfully",
+        result=TruckRead.model_validate(repo.update(id, update_data))
+    )
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_truck(
@@ -56,9 +58,6 @@ def delete_truck(
     if not success:
         raise HTTPException(status_code=404, detail="Truck not found or already deleted")
     return None
-
-def build_filters(**kwargs) -> dict:
-    return {k: v for k, v in kwargs.items() if v is not None}
 
 @router.get("/", response_model=TruckPaginatedResponse)
 def list_trucks(

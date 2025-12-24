@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from src.core.exception.database_exceptions import DatabaseException
 from src.middlewares.request_logging import RequestLoggingMiddleware
 from src.middlewares.security_headers import SecurityHeadersMiddleware
-from src.api import api_router
+from src.api.router import api_router
 from src.core.exceptions import (
     CustomHTTPException,
     database_exception_handler,
