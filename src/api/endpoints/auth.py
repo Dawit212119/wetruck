@@ -5,28 +5,10 @@ from sqlalchemy import select
 from src.api.schemas.auth import LoginRequest
 from src.core.db.session import get_db
 from src.core.security.password import verify_password
-from src.core.security.jwt import (
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-)
+from src.core.security.jwt import create_access_token, create_refresh_token, decode_token
 from src.models.models import User
-from src.repositories.dependencies import get_repository
-from src.repositories.user_repository import UserRepository
 
 router = APIRouter()
-
-get_user_repo = get_repository(4, UserRepository)
-
-@router.get(
-         "/list",
-    summary="list",
-    description="",
-)
-def list(repo: UserRepository = Depends(get_user_repo)):
-    return repo.list()
-    
-
 
 @router.post(
     "/login",
@@ -48,7 +30,6 @@ async def login(
             detail="Invalid email or password",
         )
 
-    # Check if role matches
     if user.user_type != payload.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -58,10 +39,12 @@ async def login(
     access_token = create_access_token(
         subject=str(user.id),
         role=user.user_type,
+        organization_id=user.organization_id,  # required now
     )
 
     refresh_token = create_refresh_token(
         subject=str(user.id),
+        organization_id=user.organization_id,  # required now
     )
 
     return {
@@ -70,7 +53,9 @@ async def login(
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
         "role": user.user_type,
+        "organization_id": user.organization_id,
     }
+
 @router.post(
     "/refresh",
     summary="Refresh access token",
@@ -100,7 +85,8 @@ async def refresh_token(
 
     access_token = create_access_token(
         subject=str(user.id),
-        role=user.user_type,   
+        role=user.user_type,
+        organization_id=user.organization_id,
     )
 
     return {
@@ -108,4 +94,5 @@ async def refresh_token(
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
         "role": user.user_type,
+        "organization_id": user.organization_id,
     }

@@ -32,3 +32,5 @@ def require_roles(*roles: str):
         return user
 
     return role_checker
+
+transporter_only = require_roles("transporter")
