@@ -1,22 +1,23 @@
 # dependencies.py
-from fastapi import Depends
-from sqlalchemy.orm import Session
+from fastapi import Depends,HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Type
+from src.repositories.base_repository import BaseRepository, ModelType
 from src.core.db.session import get_db
 from src.core.security.dependencies import get_current_user
-from src.models.models import User
-from src.repositories.base_repository import BaseRepository
-from src.repositories.base_repository import ModelType
-# from src.core.context import get_current_organization_id
+
 def get_repository(
-    organization_id: int,
     repo_cls: Type[BaseRepository[ModelType]],
 ):
-    def _get_repo(
-        db: Session = Depends(get_db),
-        # current_user: User = Depends(get_current_user),
+    async def _get_repo(
+        db: AsyncSession = Depends(get_db),
+        user: dict = Depends(get_current_user)
     ) -> BaseRepository[ModelType]:
-        return repo_cls(db=db, organization_id=organization_id)
-        # return repo_cls(db=db, organization_id=get_current_organization_id())
-    
+
+        org_id = user.get("organization_id")  # read safely from token dict
+        if not org_id:
+            raise HTTPException(401, "organization_id missing in token")
+
+        return repo_cls(db=db, organization_id=org_id)
+
     return _get_repo
