@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.api.schemas.auth import LoginRequest
+from src.api.schemas.auth import LoginRequest, UserMeResponse
 from src.core.db.session import get_db
 from src.core.security.password import verify_password
 from src.core.security.jwt import (
@@ -13,6 +13,7 @@ from src.core.security.jwt import (
 from src.models.models import User
 from src.repositories.dependencies import get_repository
 from src.repositories.user_repository import UserRepository
+from src.core.security.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -38,6 +39,7 @@ from sqlalchemy import select
 )
 def login(
     payload: LoginRequest,
+    response: Response,  # Add this to set cookies
     db: Session = Depends(get_db),
 ):
     result = db.execute(
@@ -64,6 +66,24 @@ def login(
 
     refresh_token = create_refresh_token(
         subject=str(user.id),
+    )
+
+        # Set HttpOnly cookies (secure in production)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,       # Set to False in local dev if not using HTTPS
+        samesite="lax",    # Or "strict" depending on your needs
+        max_age=60 * 60 * 24,  # 1 day, adjust to match access token expiry
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 30,  # Longer for refresh, e.g., 30 days
     )
 
     return {
@@ -112,3 +132,22 @@ async def refresh_token(
         "expires_in": 60 * 60 * 24,
         "role": user.user_type,
     }
+
+
+get_user_repo = get_repository(organization_id=None, repo_cls=UserRepository)
+
+@router.get(
+    "/me",
+    summary="Get current user",
+    description="Returns the authenticated user's profile information",
+    response_model=UserMeResponse,  # Define a Pydantic response model
+)
+def get_current_user(
+    current_user: User = Depends(get_current_user),  # Your auth dependency
+    get_user_repo: UserRepository = Depends(get_user_repo),
+):
+    """
+    Retrieve the currently logged-in user's details.
+    """
+    return get_user_repo.get(current_user["sub"])
+    # return current_user
