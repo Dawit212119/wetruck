@@ -7,7 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy import Enum as SAEnum
 
-from src.domain.enums.document import DocumentTypeEnum
+from src.domain.enums.document import DocumentStatusEnum, DocumentTypeEnum
 from src.domain.enums.driver import DriverStatusEnum
 from src.domain.enums.organization import OrganizationTypeEnum
 from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum
@@ -230,6 +230,11 @@ class Document(Base, AuditMixin, TenantMixin):
     document_type: Mapped[DocumentTypeEnum] = mapped_column(
         SAEnum(DocumentTypeEnum, native_enum=False, length=50),
         nullable=False
+    )
+    status: Mapped[DocumentStatusEnum] = mapped_column(
+        SAEnum(DocumentStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=DocumentStatusEnum.PENDING
     )
     file_path: Mapped[str] = mapped_column(nullable=False)
     # Polymorphic ownership (separate from tenant organization)
