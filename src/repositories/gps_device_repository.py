@@ -104,7 +104,44 @@ class GPSDeviceRepository(BaseRepository[GPSDevice]):
                 404
             )
         
-        # Check if truck is already bound to another active device
+        # Check if GPS device is already associated with another truck (within organization)
+        existing_truck_in_org = self.db.scalars(
+            select(Truck).where(
+                and_(
+                    Truck.gps_device_id == device_id,
+                    Truck.organization_id == self.organization_id,
+                    Truck.id != truck_id,  # Exclude the target truck
+                    Truck.deleted.is_(False)
+                )
+            )
+        ).first()
+        
+        if existing_truck_in_org:
+            from src.core.exception.database_exceptions import DatabaseException
+            raise DatabaseException(
+                f"GPS device is already associated with truck ID {existing_truck_in_org.id} in your organization.",
+                409
+            )
+        
+        # Check if GPS device is associated with a truck outside the organization (data integrity check)
+        existing_truck_outside_org = self.db.scalars(
+            select(Truck).where(
+                and_(
+                    Truck.gps_device_id == device_id,
+                    Truck.organization_id != self.organization_id,
+                    Truck.deleted.is_(False)
+                )
+            )
+        ).first()
+        
+        if existing_truck_outside_org:
+            from src.core.exception.database_exceptions import DatabaseException
+            raise DatabaseException(
+                f"GPS device is already associated with a truck (ID: {existing_truck_outside_org.id}) in another organization. Please contact support.",
+                409
+            )
+        
+        # Check if truck is already bound to another active device (within organization)
         if truck.gps_device_id and truck.gps_device_id != device_id:
             existing_device = self.db.scalars(
                 select(GPSDevice).where(
