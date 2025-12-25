@@ -28,17 +28,20 @@ def list(repo: UserRepository = Depends(get_user_repo)):
     
 
 
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
 @router.post(
     "/login",
     summary="Login",
     description="Authenticate using email and password",
 )
-async def login(
+def login(
     payload: LoginRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
-    result = await db.execute(
-        select(User).filter(User.username == payload.email)
+    result = db.execute(
+        select(User).where(User.email == payload.email)
     )
     user = result.scalar_one_or_none()
 
@@ -48,8 +51,7 @@ async def login(
             detail="Invalid email or password",
         )
 
-    # Check if role matches
-    if user.user_type != payload.role:
+    if user.user_type.value != payload.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User role mismatch",
@@ -57,7 +59,7 @@ async def login(
 
     access_token = create_access_token(
         subject=str(user.id),
-        role=user.user_type,
+        role=user.user_type.value,
     )
 
     refresh_token = create_refresh_token(
@@ -71,6 +73,7 @@ async def login(
         "expires_in": 60 * 60 * 24,
         "role": user.user_type,
     }
+
 @router.post(
     "/refresh",
     summary="Refresh access token",
