@@ -7,6 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy import Enum as SAEnum
 
+from src.domain.enums.driver import DriverStatusEnum
 from src.domain.enums.organization import OrganizationTypeEnum
 from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum
 from src.domain.enums.user import UserStatusEnum, UserTypeEnum
@@ -199,7 +200,11 @@ class Driver(Base, AuditMixin, TenantMixin):
     phone_number: Mapped[Optional[str]] = mapped_column(String(20),unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     driver_license_number: Mapped[Optional[str]] = mapped_column(String(100),unique=True, nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="active")  # active|suspended
+    status: Mapped[DriverStatusEnum] = mapped_column(
+        SAEnum(DriverStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=DriverStatusEnum.ACTIVE,
+    )
     documents = relationship("Document", back_populates="driver")
 
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, status
-from src.schemas.driver import DriverCreate, DriverUpdate, DriverResponse,DriverPaginatedResponse
+from src.api.schemas.driver import DriverCreate, DriverPaginatedResponse, DriverResponse, DriverUpdate
 from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.driver_repository import DriverRepository
 from src.core.security.dependencies import transporter_only

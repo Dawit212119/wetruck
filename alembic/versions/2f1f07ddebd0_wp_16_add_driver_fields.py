@@ -1,8 +1,8 @@
-"""WP-16-add-driver-fields
+"""wp_16_add_driver_fields
 
-Revision ID: b4ae0cb97ee1
-Revises: 63a9cdc9fa6e
-Create Date: 2025-12-24 15:24:54.980441
+Revision ID: 2f1f07ddebd0
+Revises: cc1ab75ef35f
+Create Date: 2025-12-25 15:05:59.786116
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b4ae0cb97ee1'
-down_revision: Union[str, Sequence[str], None] = '63a9cdc9fa6e'
+revision: str = '2f1f07ddebd0'
+down_revision: Union[str, Sequence[str], None] = 'cc1ab75ef35f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -27,8 +27,8 @@ def upgrade() -> None:
     op.add_column('driver', sa.Column('email', sa.String(length=255), nullable=False))
     op.add_column('driver', sa.Column('driver_license_number', sa.String(length=100), nullable=False))
     op.add_column('driver', sa.Column('status', sa.String(length=50), nullable=False))
-    op.create_unique_constraint(None, 'driver', ['driver_license_number'])
     op.create_unique_constraint(None, 'driver', ['phone_number'])
+    op.create_unique_constraint(None, 'driver', ['driver_license_number'])
     op.create_unique_constraint(None, 'driver', ['email'])
     # ### end Alembic commands ###
 
