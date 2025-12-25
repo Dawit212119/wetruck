@@ -92,34 +92,14 @@ def get_driver(
 @router.patch("/{id}")
 def update_driver(
     id: int,
-    payload: DriverUpdate,
+    req: DriverUpdate,
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    existing = repo.is_already_exist(
-        license_number=payload.driver_license_number,
-        phone_number=payload.phone_number,
-        email=payload.email
-    )
-
-    if existing and existing.id != id:
-        raise CustomHTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "License, phone number, or email already used by another driver",
-            code="DRIVER_DUPLICATE"
-        )
-
-    driver = repo.update(id, payload.model_dump(exclude_unset=True))
-    if not driver:
-        raise CustomHTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "Driver not found",
-            code="DRIVER_NOT_FOUND"
-        )
-
+    update_data = req.model_dump(exclude_unset=True)
     return GenericCUDResponse(
         status=True,
-        success_message="Driver updated successfully",
-        result=DriverResponse.model_validate(driver)
+        success_message="Updated successfully",
+        result=DriverResponse.model_validate(repo.update(id, update_data))
     )
 
 

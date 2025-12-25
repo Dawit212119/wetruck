@@ -205,3 +205,8 @@ class BaseRepository(ABC, Generic[ModelType]):
 
         pages = (total + per_page - 1) // per_page if total else 0
         return items, total, page, per_page, pages
+    
+
+
+    def commit(self):
+        self.db.commit()
