@@ -25,7 +25,7 @@ get_user_repo = get_repository(4, UserRepository)
 )
 def list(repo: UserRepository = Depends(get_user_repo)):
     return repo.list()
-    
+
 
 
 from sqlalchemy.orm import Session
@@ -60,7 +60,6 @@ def login(
     access_token = create_access_token(
         subject=str(user.id),
         role=user.user_type.value,
-        role=user.user_type,
         organization_id=user.organization_id,  # required now
     )
 
@@ -74,7 +73,7 @@ def login(
         "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
-        "role": user.user_type,
+        "role": user.user_type.value,
         "organization_id": user.organization_id,
     }
 
@@ -107,7 +106,7 @@ async def refresh_token(
 
     access_token = create_access_token(
         subject=str(user.id),
-        role=user.user_type,
+        role=user.user_type.value,
         organization_id=user.organization_id,
     )
 
@@ -115,6 +114,6 @@ async def refresh_token(
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
-        "role": user.user_type,
+        "role": user.user_type.value,
         "organization_id": user.organization_id,
     }
