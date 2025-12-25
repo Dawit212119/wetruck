@@ -5,22 +5,43 @@ from sqlalchemy import select
 from src.api.schemas.auth import LoginRequest
 from src.core.db.session import get_db
 from src.core.security.password import verify_password
-from src.core.security.jwt import create_access_token, create_refresh_token, decode_token
+from src.core.security.jwt import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from src.models.models import User
+from src.repositories.dependencies import get_repository
+from src.repositories.user_repository import UserRepository
 
 router = APIRouter()
+
+get_user_repo = get_repository(4, UserRepository)
+
+@router.get(
+         "/list",
+    summary="list",
+    description="",
+)
+def list(repo: UserRepository = Depends(get_user_repo)):
+    return repo.list()
+    
+
+
+from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 @router.post(
     "/login",
     summary="Login",
     description="Authenticate using email and password",
 )
-async def login(
+def login(
     payload: LoginRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
-    result = await db.execute(
-        select(User).filter(User.username == payload.email)
+    result = db.execute(
+        select(User).where(User.email == payload.email)
     )
     user = result.scalar_one_or_none()
 
@@ -30,7 +51,7 @@ async def login(
             detail="Invalid email or password",
         )
 
-    if user.user_type != payload.role:
+    if user.user_type.value != payload.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User role mismatch",
@@ -38,6 +59,7 @@ async def login(
 
     access_token = create_access_token(
         subject=str(user.id),
+        role=user.user_type.value,
         role=user.user_type,
         organization_id=user.organization_id,  # required now
     )

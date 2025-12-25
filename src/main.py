@@ -6,9 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from src.api import api_router
+from src.core.exception.database_exceptions import DatabaseException
+from src.middlewares.request_logging import RequestLoggingMiddleware
+from src.middlewares.security_headers import SecurityHeadersMiddleware
+from src.api.router import api_router
 from src.core.exceptions import (
     CustomHTTPException,
+    database_exception_handler,
     http_exception_handler,
     validation_exception_handler,
     custom_exception_handler,
@@ -119,6 +123,10 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
+app.add_exception_handler(
+    DatabaseException,
+    database_exception_handler,
+)
 # -------------------------
 # Routes
 # -------------------------
