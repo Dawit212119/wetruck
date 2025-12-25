@@ -1,11 +1,11 @@
-from src.repositories.base_repository import BaseRepository
 from sqlalchemy import select, or_
+from src.repositories.base_repository import BaseRepository
 from src.models.models import Driver
 
 class DriverRepository(BaseRepository[Driver]):
     model = Driver
 
-    async def is_already_exist(
+    def is_already_exist(
         self, license_number: str = None, phone_number: str = None, email: str = None
     ):
         """
@@ -24,5 +24,5 @@ class DriverRepository(BaseRepository[Driver]):
             match_conditions.append(self.model.email == email)
 
         stmt = select(self.model).where(or_(*match_conditions))
-        result = await self.db.execute(stmt)
+        result = self.db.execute(stmt)
         return result.scalar_one_or_none()

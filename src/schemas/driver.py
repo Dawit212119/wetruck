@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
-
+from typing import Optional,List
+from src.api.schemas.generic import PaginatedResponse
 class DriverCreate(BaseModel):
     first_name: str = Field(..., min_length=2, max_length=50)
     last_name: str = Field(..., min_length=2, max_length=50)
@@ -29,3 +29,7 @@ class DriverResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class DriverPaginatedResponse(PaginatedResponse):
+    items: List[DriverResponse]

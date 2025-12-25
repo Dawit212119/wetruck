@@ -1,37 +1,58 @@
 from fastapi import APIRouter, Depends, Query, status
-from src.schemas.driver import DriverCreate, DriverUpdate, DriverResponse
-from src.schemas.onboarding import MessageResponse
-from src.repositories.dependencies import get_repository
+from src.schemas.driver import DriverCreate, DriverUpdate, DriverResponse,DriverPaginatedResponse
+from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.driver_repository import DriverRepository
 from src.core.security.dependencies import transporter_only
 from src.core.exceptions import CustomHTTPException
+from src.api.schemas.generic import GenericCUDResponse
+from src.core.api_utils import build_filters
+from typing import Optional
 
-router = APIRouter(prefix="/drivers", tags=["drivers"], dependencies=[Depends(transporter_only)])
-get_driver_repo = get_repository(DriverRepository)
+router = APIRouter( dependencies=[Depends(transporter_only)])
+get_driver_repo = get_tenant_aware_repository(DriverRepository)
 
 
-@router.get("/", response_model=MessageResponse)
-async def list_drivers(
-    skip: int = Query(0, ge=0, description="Number of items to skip"),
-    limit: int = Query(100, ge=1, le=500, description="Max number of items to return"),
-    repo: DriverRepository = Depends(get_driver_repo)
+@router.get("/", response_model=DriverPaginatedResponse)
+def list_drivers(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    phone_number: Optional[str] = None,
+    email: Optional[str] = None,
+    driver_license_number: Optional[str] = None,
+    status: Optional[str] = None,
+    repo: DriverRepository = Depends(get_driver_repo),
 ):
-    drivers = await repo.list(skip=skip, limit=limit)
-    serialized = [DriverResponse.model_validate(driver) for driver in drivers]
-
-    return MessageResponse(
-        code=status.HTTP_200_OK,
-        msg="Drivers retrieved successfully",
-        data={"drivers": serialized, "skip": skip, "limit": limit, "count": len(serialized)}
+    filters = build_filters(
+        first_name=first_name,
+        last_name=last_name,
+        phone_number=phone_number,
+        email=email,
+        driver_license_number=driver_license_number,
+        status=status,
     )
 
+    items, total, page, per_page, pages = repo.paginated_list(
+        page=page, per_page=per_page, filters=filters
+    )
 
-@router.post("/", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-async def create_driver(
+    return DriverPaginatedResponse(
+        status=True,
+        message="Drivers fetched successfully",
+        items=items,
+        total=total,
+        page=page,
+        pages=pages,
+        per_page=per_page
+    )
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def create_driver(
     payload: DriverCreate,
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    if await repo.is_already_exist(
+    if  repo.is_already_exist(
         license_number=payload.driver_license_number,
         phone_number=payload.phone_number,
         email=payload.email
@@ -42,22 +63,19 @@ async def create_driver(
             code="DRIVER_DUPLICATE"
         )
 
-    driver = await repo.create(payload.model_dump())
-    serialized = DriverResponse.model_validate(driver)
-
-    return MessageResponse(
-        code=status.HTTP_201_CREATED,
-        msg="Driver created successfully",
-        data={"driver": serialized}
+    driver = repo.create(payload.model_dump())
+    return GenericCUDResponse(
+        status=True,
+        success_message="Driver created successfully",
+        result=DriverResponse.model_validate(driver)
     )
 
-
-@router.get("/{id}", response_model=MessageResponse)
-async def get_driver(
+@router.get("/{id}")
+def get_driver(
     id: int,
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    driver = await repo.get(id)
+    driver = repo.get(id)
     if not driver:
         raise CustomHTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -65,22 +83,19 @@ async def get_driver(
             code="DRIVER_NOT_FOUND"
         )
 
-    serialized = DriverResponse.model_validate(driver)
-
-    return MessageResponse(
-        code=status.HTTP_200_OK,
-        msg="Driver retrieved successfully",
-        data={"driver": serialized}
+    return GenericCUDResponse(
+        status=True,
+        success_message="Driver retrieved successfully",
+        result=DriverResponse.model_validate(driver)
     )
 
-
-@router.patch("/{id}", response_model=MessageResponse)
-async def update_driver(
+@router.patch("/{id}")
+def update_driver(
     id: int,
     payload: DriverUpdate,
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    existing = await repo.is_already_exist(
+    existing = repo.is_already_exist(
         license_number=payload.driver_license_number,
         phone_number=payload.phone_number,
         email=payload.email
@@ -93,7 +108,7 @@ async def update_driver(
             code="DRIVER_DUPLICATE"
         )
 
-    driver = await repo.update(id, payload.model_dump(exclude_unset=True))
+    driver = repo.update(id, payload.model_dump(exclude_unset=True))
     if not driver:
         raise CustomHTTPException(
             status.HTTP_404_NOT_FOUND,
@@ -101,21 +116,19 @@ async def update_driver(
             code="DRIVER_NOT_FOUND"
         )
 
-    serialized = DriverResponse.model_validate(driver)
-
-    return MessageResponse(
-        code=status.HTTP_200_OK,
-        msg="Driver updated successfully",
-        data={"driver": serialized}
+    return GenericCUDResponse(
+        status=True,
+        success_message="Driver updated successfully",
+        result=DriverResponse.model_validate(driver)
     )
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_driver(
+def delete_driver(
     id: int,
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    ok = await repo.soft_delete(id)
+    ok =  repo.soft_delete(id)
     if not ok:
         raise CustomHTTPException(
             status.HTTP_404_NOT_FOUND,
