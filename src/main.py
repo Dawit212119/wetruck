@@ -118,15 +118,17 @@ app.add_middleware(SecurityHeadersMiddleware)
 # -------------------------
 # Global Exception Handlers
 # -------------------------
+# Register specific handlers first, then generic ones
+# FastAPI matches handlers in reverse order (last registered = first checked)
 app.add_exception_handler(CustomHTTPException, custom_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(Exception, unhandled_exception_handler)
-
+# DatabaseException must be registered before Exception to be matched first
 app.add_exception_handler(
     DatabaseException,
     database_exception_handler,
 )
+app.add_exception_handler(Exception, unhandled_exception_handler)
 # -------------------------
 # Routes
 # -------------------------
