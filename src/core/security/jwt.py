@@ -4,7 +4,7 @@ from typing import Any, Dict
 from jose import jwt, JWTError
 from src.core.settings.settings import settings
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 def _create_token(payload: Dict[str, Any], expires_delta: timedelta) -> str:
