@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src.core.app_logging import logger
+from src.core.exception.database_exceptions import DatabaseException
 
 def format_validation_errors(errors):
     field_errors = {}
@@ -32,6 +33,16 @@ class CustomHTTPException(HTTPException):
         super().__init__(status_code=status_code)
         self.message = message
         self.code = code
+
+
+async def database_exception_handler(
+    request: Request,
+    exc: DatabaseException,
+):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message},
+    )
 
 async def http_exception_handler(request: Request, exc: HTTPException):
     logger.warning(
