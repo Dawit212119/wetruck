@@ -41,7 +41,7 @@ class BaseRepository(ABC, Generic[ModelType]):
                 self.db.rollback()
                 # 👇 pass the model so unique fields can be resolved dynamically
                 raise map_sqlalchemy_exception(exc, model=self.model)
-        
+
     def _is_tenant_aware(self) -> bool:
         return hasattr(self.model, "organization_id")
 
@@ -126,7 +126,7 @@ class BaseRepository(ABC, Generic[ModelType]):
             self.db.refresh(obj)
             return obj
         return self._execute(action)
-    
+
     def soft_delete(self, id: int) -> bool:
         stmt = (
             update(self.model)
@@ -148,7 +148,7 @@ class BaseRepository(ABC, Generic[ModelType]):
         """
         if filters == None:
             return stmt
-        
+
         for key, value in filters.items():
             if value is None:
                 continue
@@ -170,7 +170,7 @@ class BaseRepository(ABC, Generic[ModelType]):
                 stmt = stmt.where(column == value)
 
         return stmt
-    
+
 
     def paginated_list(
         self,
@@ -205,3 +205,8 @@ class BaseRepository(ABC, Generic[ModelType]):
 
         pages = (total + per_page - 1) // per_page if total else 0
         return items, total, page, per_page, pages
+    
+
+
+    def commit(self):
+        self.db.commit()

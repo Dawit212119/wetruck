@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.api.endpoints import health, auth, admin, shipper, transporter, truck, organization, user
+from src.api.endpoints import health, auth, admin, shipper, transporter, truck, organization, user,driver
 
 # auth dependency
 from src.core.security.dependencies import get_current_user
@@ -11,6 +11,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router, prefix="/health", tags=["Health"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 api_router.include_router(truck.router, prefix="/truck", tags=["Truck"])
+api_router.include_router(driver.router, prefix="/driver", tags=["Driver"])
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])
 api_router.include_router(user.router, prefix="/user", tags=["User"])
 
