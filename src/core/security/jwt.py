@@ -24,24 +24,30 @@ def _create_token(payload: Dict[str, Any], expires_delta: timedelta) -> str:
         algorithm=settings.jwt_algorithm,
     )
 
-def create_access_token(*, subject: str, role: str, organization_id: int) -> str:
+def create_access_token(*, subject: str, role: str, organization_id: int = None) -> str:
+    payload = {
+        "sub": subject,
+        "role": role,
+        "type": "access",
+    }
+    if organization_id is not None:
+        payload["organization_id"] = organization_id
+    
     return _create_token(
-        payload={
-            "sub": subject,
-            "role": role,
-            "type": "access",
-            "organization_id": organization_id,  # now always included
-        },
+        payload=payload,
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
-def create_refresh_token(*, subject: str, organization_id: int) -> str:
+def create_refresh_token(*, subject: str, organization_id: int = None) -> str:
+    payload = {
+        "sub": subject,
+        "type": "refresh",
+    }
+    if organization_id is not None:
+        payload["organization_id"] = organization_id
+    
     return _create_token(
-        payload={
-            "sub": subject,
-            "type": "refresh",
-            "organization_id": organization_id,  # include for refresh too
-        },
+        payload=payload,
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
