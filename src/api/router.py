@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.api.endpoints import health, auth, admin, document, shipper, transporter, truck, organization, user,driver,price_quote
+from src.api.endpoints import health, auth, admin, document, shipper, transporter, truck, organization, user,driver,gps_devices,price_quote
 
 # auth dependency
 from src.core.security.dependencies import get_current_user
@@ -16,6 +16,7 @@ api_router.include_router(price_quote.router, prefix="/price-quote", tags=["Pric
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])
 api_router.include_router(user.router, prefix="/user", tags=["User"])
 api_router.include_router(document.router, prefix="/document", tags=["Document"])
+api_router.include_router(gps_devices.router, prefix="/gps-devices", tags=["GPS Devices"])
 
 # Protected routes
 protected_router = APIRouter(dependencies=[Depends(get_current_user)])
