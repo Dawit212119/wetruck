@@ -59,7 +59,6 @@ coverage.xml
 # =========================
 # IDEs / Editors
 # =========================
-.vscode/
 .idea/
 *.iml
 *.swp
@@ -92,3 +91,6 @@ docker-compose.override.yml
 tmp/
 .pdf
 uploads/
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
