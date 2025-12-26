@@ -1,15 +1,21 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from src.api.schemas.document import DocumentResponse
 from src.api.schemas.driver import DriverCreate, DriverPaginatedResponse, DriverResponse, DriverUpdate
+from src.domain.enums.document import DocumentTypeEnum
+from src.models.models import Driver
 from src.repositories.dependencies import get_tenant_aware_repository
+from src.repositories.document_repository import DocumentRepository
 from src.repositories.driver_repository import DriverRepository
 from src.core.security.dependencies import transporter_only
 from src.core.exceptions import CustomHTTPException
 from src.api.schemas.generic import GenericCUDResponse
 from src.core.api_utils import build_filters
 from typing import Optional
+from src.services.document import DocumentService
 
 router = APIRouter( dependencies=[Depends(transporter_only)])
 get_driver_repo = get_tenant_aware_repository(DriverRepository)
+get_document_repo = get_tenant_aware_repository(DocumentRepository)
 
 
 @router.get("/", response_model=DriverPaginatedResponse)
@@ -117,3 +123,78 @@ def delete_driver(
         )
 
     return  # 204 must not return body
+
+
+
+
+@router.post(
+    "/{id}/documents",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a single document attached to truck",
+)
+async def upload_document(
+    id: int,
+    document_type: DocumentTypeEnum = Form(..., description="Type of the document"),
+    file: UploadFile = File(..., description="The document file to upload"),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: DriverRepository = Depends(get_driver_repo)
+):
+    driver = repo.get(id = id)
+    # Create Document record
+    document = {
+        "document_type": document_type,
+        "file_path": str(await DocumentService.save_on_aws(file=file)),
+        "driver_id": id,
+    }
+    return repo_document.create(document)
+
+@router.get(
+    "/{id}/documents",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_201_CREATED,
+    summary="Get document attached to driver",
+)
+async def get_documents(
+    id: int,
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: DriverRepository = Depends(get_driver_repo)
+):
+    driver: Driver = repo.get(id = id)
+    return list(filter(lambda doc: not doc.deleted, driver.documents))
+
+@router.get(
+    "/{id}/documents/{document_id}",
+    response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_200_OK,
+    summary="Get document attached to driver",
+)
+async def get_document(
+    id: int,
+    document_id: int,
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: DriverRepository = Depends(get_driver_repo)
+):
+    truck = repo.get(id = id)
+    document = repo_document.get(id = document_id)
+
+    return await DocumentService.to_document_response(doc=document)
+
+
+@router.delete(
+    "/{id}/documents/{document_id}",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Get document attached to driver",
+)
+async def delete_document(
+    id: int,
+    document_id: int,
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: DriverRepository = Depends(get_driver_repo)
+):
+    truck = repo.get(id = id)
+    success = repo_document.soft_delete(id = document_id) 
+    if not success:
+        raise HTTPException(status_code=404, detail="Document not found or already deleted")
+    return None

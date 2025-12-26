@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     jwt_secret_key: str = "dev-secret-key"
     jwt_algorithm: str = "HS256"
+    s3_bucket_name: str = ""
+    s3_region: str = ""
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
 
 
     model_config = SettingsConfigDict(env_file=".env")

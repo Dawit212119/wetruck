@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Preview</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 85vh;
+            border: none;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>PDF Document Preview</h1>
+
+<iframe id="pdfFrame"></iframe>
+
+<script>
+    async function loadPdf() {
+        // Call your backend — DO NOT hardcode S3 URL
+        // const response = await fetch(
+        //     "http://localhost:8000/documents/9d0992fd-841d-4c67-a968-18de2abb7916"
+        // );
+
+        // const data = await response.json();
+
+        document.getElementById("pdfFrame").src = "https://eyasu-local-test.s3.amazonaws.com/uploads/5575f4e6-106b-40bb-94e7-bff51b07ce74.pdf?response-content-type=application%2Fpdf&response-content-disposition=inline&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAYM7PNZB65I54C2SR%2F20251226%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20251226T111802Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=8cd9f245115ed576d24ca9f460def05a1f469b042259f184539c7b6f10d08a6d";
+                // data.url;
+    }
+
+    loadPdf();
+</script>
+
+</body>
+</html>
