@@ -74,7 +74,7 @@ def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,        # set False locally if no HTTPS
+        secure=False,  # Set to False in local dev if not using HTTPS
         samesite="lax",
         max_age=60 * 60 * 24,
     )
@@ -82,7 +82,7 @@ def login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
+        secure=False,  # Set to False in local dev if not using HTTPS
         samesite="lax",
         max_age=60 * 60 * 24 * 30,
     )
