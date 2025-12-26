@@ -30,6 +30,7 @@ def list_users(repo: UserRepository = Depends(get_user_repo)):
     return repo.list()
 
 
+
 @router.post(
     "/login",
     summary="Login",
@@ -91,6 +92,8 @@ def login(
         "refresh_token": refresh_token,
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
+        "role": user.user_type.value,
+        "organization_id": user.organization_id,
         "role": user.user_type.value,
         "organization_id": user.organization_id,
     }
@@ -183,6 +186,8 @@ def refresh_token_endpoint(
         "message": "Token refreshed successfully",
         "token_type": "bearer",
         "expires_in": 60 * 60 * 24,
+        "role": user.user_type.value,
+        "organization_id": user.organization_id,
         "role": user.user_type.value,
         "organization_id": user.organization_id,
     }

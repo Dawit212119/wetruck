@@ -90,3 +90,5 @@ docker-compose.override.yml
 # =========================
 .cache/
 tmp/
+.pdf
+uploads/
