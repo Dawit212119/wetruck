@@ -124,10 +124,10 @@ def logout(response: Response):
     summary="Refresh access token",
     description="Uses refresh_token cookie to generate a new access_token",
 )
-async def refresh_token_endpoint(
+def refresh_token_endpoint(
     response: Response,
     refresh_token: Optional[str] = Cookie(None),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """
     Refresh the access token using the refresh_token cookie.
