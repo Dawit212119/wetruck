@@ -217,14 +217,8 @@ class Container(Base, AuditMixin, TenantMixin):
 class GPSDevice(Base, AuditMixin, TenantMixin):
     __tablename__ = "gps_device"
     
-    external_device_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    imei_number: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    
-    __table_args__ = (
-        # Unique constraints scoped to organization (tenant-aware)
-        UniqueConstraint('organization_id', 'external_device_id', name='uq_gps_device_org_external_id'),
-        UniqueConstraint('organization_id', 'imei_number', name='uq_gps_device_org_imei'),
-    )
+    external_device_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    imei_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     device_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     device_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     expire_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
