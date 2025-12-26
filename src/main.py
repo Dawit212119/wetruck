@@ -67,6 +67,10 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://localhost:8993",
             "http://localhost:8994",
             "http://localhost:5173",
+            "http://localhost:3000",      # ✅ Add this - Next.js dev server
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",      # ✅ Add this - Next.js dev server
+            "http://127.0.0.1:3001",
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -99,6 +103,7 @@ else:
             "http://localhost:8991",
             "http://localhost:8992",
             "http://localhost:8993",
+            "http://localhost:3000",
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -118,15 +123,17 @@ app.add_middleware(SecurityHeadersMiddleware)
 # -------------------------
 # Global Exception Handlers
 # -------------------------
+# Register specific handlers first, then generic ones
+# FastAPI matches handlers in reverse order (last registered = first checked)
 app.add_exception_handler(CustomHTTPException, custom_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(Exception, unhandled_exception_handler)
-
+# DatabaseException must be registered before Exception to be matched first
 app.add_exception_handler(
     DatabaseException,
     database_exception_handler,
 )
+app.add_exception_handler(Exception, unhandled_exception_handler)
 # -------------------------
 # Routes
 # -------------------------
