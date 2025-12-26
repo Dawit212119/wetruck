@@ -41,6 +41,11 @@ def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username or email already registered"
         )
+    if(req.user_type in [UserTypeEnum.SHIPPER, UserTypeEnum.TRANSPORTER] and req.organization_id == None):
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization data missed"
+            )
     
     org = repo_org.get(id=req.organization_id) if req.organization_id != None else None
     if req.organization_id != None and not org:
@@ -66,6 +71,9 @@ def register_user(
 
     new_user = repo.create(req.model_dump())
     
+    if org:
+        new_user.organization = org
+        repo.commit()
 
     # Create the appropriate profile based on user_type
     if req.user_type == UserTypeEnum.TRANSPORTER:

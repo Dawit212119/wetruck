@@ -25,21 +25,25 @@ def _create_token(payload: Dict[str, Any], expires_delta: timedelta) -> str:
     )
 
 def create_access_token(*, subject: str, role: str, organization_id: int) -> str:
+def create_access_token(*, subject: str, role: str, organization_id: int) -> str:
     return _create_token(
         payload={
             "sub": subject,
             "role": role,
             "type": "access",
             "organization_id": organization_id,  # now always included
+            "organization_id": organization_id,  # now always included
         },
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
 def create_refresh_token(*, subject: str, organization_id: int) -> str:
+def create_refresh_token(*, subject: str, organization_id: int) -> str:
     return _create_token(
         payload={
             "sub": subject,
             "type": "refresh",
+            "organization_id": organization_id,  # include for refresh too
             "organization_id": organization_id,  # include for refresh too
         },
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
