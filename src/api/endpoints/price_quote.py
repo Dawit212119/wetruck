@@ -79,56 +79,42 @@ def update_quote(
     req: PriceQuoteUpdate,
     repo: PriceQuoteRepository = Depends(get_quote_repo)
 ):
-    # Fetch existing quote
     quote = repo.get(id)
     if not quote:
         raise CustomHTTPException(status.HTTP_404_NOT_FOUND, "Quote not found", code="QUOTE_NOT_FOUND")
 
-    # Block update if already active
-    if quote.status == PriceQuoteStatusEnum.ACTIVE:  # enum stored as string
+    if quote.status == PriceQuoteStatusEnum.ACTIVE:
         raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "Cannot update an active quote", code="QUOTE_ACTIVE")
 
-    # Extract only provided fields
     update_data = req.model_dump(exclude_unset=True)
 
-    # BUSINESS RULES — validate only if field is sent
-    if "price_etb" in update_data and update_data["price_etb"] is not None:
-        if update_data["price_etb"] <= 0:
-            raise CustomHTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                "Quote value must be greater than 0",
-                code="QUOTE_INVALID_PRICE"
-            )
+    # --- FIXED VALIDATION USING EXISTING VALUES ---
 
-    if "valid_from" in update_data and "valid_to" in update_data:
-        if update_data["valid_from"] and update_data["valid_to"]:
-            delta = update_data["valid_to"] - update_data["valid_from"]
-            if delta > timedelta(days=7):
-                raise CustomHTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    "Quote validity period must be less than 7 days",
-                    code="QUOTE_INVALID_PERIOD"
-                )
+    # Price validation
+    price = update_data.get("price_etb", quote.price_etb)
+    if price is not None and price <= 0:
+        raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "Quote value must be greater than 0", code="QUOTE_INVALID_PRICE")
 
-    if "origin" in update_data and "destination" in update_data:
-        if update_data["origin"] and update_data["destination"]:
-            if update_data["origin"] == update_data["destination"]:
-                raise CustomHTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    "Destination cannot be the same as origin",
-                    code="QUOTE_INVALID_ROUTE"
-                )
+    # Date range validation
+    valid_from = update_data.get("valid_from", quote.valid_from)
+    valid_to = update_data.get("valid_to", quote.valid_to)
+    if valid_from and valid_to and valid_to - valid_from > timedelta(days=7):
+        raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "Quote validity period must be less than 7 days", code="QUOTE_INVALID_PERIOD")
 
-    if "gross_weight_min" in update_data and "gross_weight_max" in update_data:
-        if update_data["gross_weight_min"] and update_data["gross_weight_max"]:
-            if update_data["gross_weight_max"] < update_data["gross_weight_min"]:
-                raise CustomHTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    "gross_weight_max must be >= gross_weight_min",
-                    code="QUOTE_INVALID_WEIGHT"
-                )
+    # Route validation
+    origin = update_data.get("origin", quote.origin)
+    destination = update_data.get("destination", quote.destination)
+    if origin and destination and origin == destination:
+        raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "Destination cannot be the same as origin", code="QUOTE_INVALID_ROUTE")
 
-    # Apply update (only provided fields)
+    # Gross weight validation (fixes your flaw)
+    gross_min = update_data.get("gross_weight_min", quote.gross_weight_min)
+    gross_max = update_data.get("gross_weight_max", quote.gross_weight_max)
+    if gross_max is not None and gross_min is not None and gross_max < gross_min:
+        raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "gross_weight_max must be >= gross_weight_min", code="QUOTE_INVALID_WEIGHT")
+
+    # --- END FIX ---
+
     updated_quote = repo.update(id, update_data)
 
     return GenericCUDResponse(
