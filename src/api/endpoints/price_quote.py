@@ -66,13 +66,6 @@ def create_quote(payload: PriceQuoteCreate, repo: PriceQuoteRepository = Depends
     quote = repo.create(payload.model_dump())
     return GenericCUDResponse(status=True, success_message="Quote created successfully", result=PriceQuoteResponse.model_validate(quote))
 
-@router.get("/{id}")
-def get_quote(id: int, repo: PriceQuoteRepository = Depends(get_quote_repo)):
-    quote = repo.get(id)
-    if not quote:
-        raise CustomHTTPException(status.HTTP_404_NOT_FOUND, "Quote not found", code="QUOTE_NOT_FOUND")
-    return GenericCUDResponse(status=True, success_message="Quote retrieved successfully", result=PriceQuoteResponse.model_validate(quote))
-
 @router.patch("/{id}")
 def update_quote(
     id: int,
@@ -107,13 +100,12 @@ def update_quote(
     if origin and destination and origin == destination:
         raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "Destination cannot be the same as origin", code="QUOTE_INVALID_ROUTE")
 
-    # Gross weight validation (fixes your flaw)
+    # Gross weight validation
     gross_min = update_data.get("gross_weight_min", quote.gross_weight_min)
     gross_max = update_data.get("gross_weight_max", quote.gross_weight_max)
     if gross_max is not None and gross_min is not None and gross_max < gross_min:
         raise CustomHTTPException(status.HTTP_400_BAD_REQUEST, "gross_weight_max must be >= gross_weight_min", code="QUOTE_INVALID_WEIGHT")
 
-    # --- END FIX ---
 
     updated_quote = repo.update(id, update_data)
 
