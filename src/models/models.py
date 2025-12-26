@@ -2,7 +2,7 @@ from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import Numeric, String
 from src.core.db.session import Base
-from sqlalchemy import Column, Integer, Boolean, Date, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, Boolean, Date, DateTime, ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy import Enum as SAEnum
@@ -192,7 +192,7 @@ class Truck(Base, AuditMixin, TenantMixin):
     libre_key: Mapped[Optional[str]] = mapped_column(nullable=True)
 
     gps_device_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("gps_device.id"))
-    gps_device = relationship("GPSDevice", uselist=False)
+    gps_device = relationship("GPSDevice", foreign_keys=[gps_device_id], uselist=False)
     documents = relationship("Document", back_populates="truck")
 
 
@@ -218,7 +218,14 @@ class Container(Base, AuditMixin, TenantMixin):
 
 class GPSDevice(Base, AuditMixin, TenantMixin):
     __tablename__ = "gps_device"
-    pass
+    
+    external_device_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    imei_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    device_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    device_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    expire_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
 
 
 class PriceQuote(Base, AuditMixin, TenantMixin):
