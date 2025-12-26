@@ -124,53 +124,6 @@ class S3FileService:
         print(object_key)
         return object_key
     
-
-    async def upload_file2(self, file: UploadFile, public: bool = False) -> str:
-        """
-        Uploads a file to S3 and returns the public URL (if public) or the object key.
-
-        Args:
-            file: FastAPI UploadFile
-            public: If True, makes the file publicly readable (use cautiously!)
-
-        Returns:
-            str: Public URL if public=True, otherwise the S3 object key
-        """
-        self._validate_file(file)
-
-        file_ext = Path(file.filename).suffix.lower()
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
-        object_key = S3_UPLOAD_PREFIX + unique_filename
-
-        extra_args = {}
-        if public:
-            extra_args["ACL"] = "public-read"
-
-        try:
-            contents = await file.read()
-            
-            self.s3_client.put_object(
-                Bucket=S3_BUCKET_NAME,
-                Key=object_key,
-                Body=contents,
-                ContentType=file.content_type or "application/octet-stream",
-                **extra_args,
-            )
-        except (ClientError, BotoCoreError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload file to S3"
-            ) from exc
-        finally:
-            await file.close()
-
-        if public:
-            return f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{object_key}"
-        else:
-            # Return the key (you can generate presigned URLs later when needed)
-            return object_key
-
-
     async def generate_presigned_url(self, object_key: str, expiration: int = 3600) -> str:
         """
         Generates a presigned URL for private files.
@@ -197,3 +150,39 @@ class S3FileService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to generate presigned URL"
             ) from exc
+        
+    async def delete_file(self, object_key: str) -> bool:
+        """
+        Deletes a file from S3 using its object key.
+
+        Args:
+            object_key (str): The full S3 object key (e.g., "uploads/123e4567-e89b-12d3-a456-426614174000.pdf")
+
+        Returns:
+            bool: True if deletion was successful
+
+        Raises:
+            HTTPException: 404 if file not found, 500 for other errors
+        """
+        try:
+            # First, check if the object exists (head_object raises 404 if not)
+            self.s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=object_key)
+
+            # Delete the object
+            self.s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=object_key)
+
+            return True
+
+        except ClientError as exc:
+            error_code = exc.response["Error"]["Code"]
+
+            if error_code == "404":
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File not found in S3: {object_key}"
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to delete file from S3"
+                ) from exc

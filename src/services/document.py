@@ -26,13 +26,6 @@ class DocumentService:
     async def save_on_aws(cls, file: UploadFile, public: bool = False) -> Path:
         return await s3_service.upload_file(file, public=public)
     
-    # @classmethod
-    # async def generate_presigned_url(cls, file_path: str) -> str:
-    #     return s3_service.generate_presigned_url(
-    #         Key=file_path,
-    #         ExpiresIn=3600,
-    #     )
-    
     @classmethod
     async def to_document_response(cls, doc: Document) -> DocumentResponse:
         # presigned_url = await DocumentService.generate_presigned_url(doc.file_path)
@@ -105,3 +98,7 @@ class DocumentService:
     def get_allowed_extensions(cls) -> Set[str]:
         """Utility to get the list of allowed extensions (e.g., for API docs)."""
         return cls.ALLOWED_EXTENSIONS.copy()
+    
+    @classmethod
+    async def delete_file(cls, object_key: str) -> bool:
+        return await s3_service.delete_file(object_key=object_key)
