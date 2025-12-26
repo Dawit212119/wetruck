@@ -67,6 +67,10 @@ if settings.env in (Environment.DEV, Environment.LOCAL):
             "http://localhost:8993",
             "http://localhost:8994",
             "http://localhost:5173",
+            "http://localhost:3000",      # ✅ Add this - Next.js dev server
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",      # ✅ Add this - Next.js dev server
+            "http://127.0.0.1:3001",
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -99,6 +103,7 @@ else:
             "http://localhost:8991",
             "http://localhost:8992",
             "http://localhost:8993",
+            "http://localhost:3000",
         ],
         allow_credentials=True,
         allow_methods=["*"],
