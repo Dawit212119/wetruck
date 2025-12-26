@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.api.endpoints import health, auth, admin, document, shipper, transporter, truck, organization, user,driver
+from src.api.endpoints import health, auth, admin, document, shipper, transporter, truck, organization, user,driver, gps_devices
 
 # auth dependency
 from src.core.security.dependencies import get_current_user
@@ -15,6 +15,7 @@ api_router.include_router(driver.router, prefix="/driver", tags=["Driver"])
 api_router.include_router(organization.router, prefix="/organization", tags=["Organization"])
 api_router.include_router(user.router, prefix="/user", tags=["User"])
 api_router.include_router(document.router, prefix="/document", tags=["Document"])
+api_router.include_router(gps_devices.router, prefix="/gps-devices", tags=["GPS Devices"])
 
 # Protected routes
 protected_router = APIRouter(dependencies=[Depends(get_current_user)])

@@ -84,6 +84,10 @@ def map_sqlalchemy_exception(
     """
     Converts SQLAlchemy exceptions into safe, user-facing errors.
     """
+    
+    # If it's already a DatabaseException, re-raise it directly
+    if isinstance(exc, DatabaseException):
+        raise exc
 
     # ---------- ORM lookup errors ----------
     if isinstance(exc, NoResultFound):
