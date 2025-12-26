@@ -9,12 +9,12 @@ from src.api.schemas.gps_device import (
 )
 from src.core.api_utils import build_filters
 from src.repositories.gps_device_repository import GPSDeviceRepository
-from src.api.dependencies.gps_dependencies import get_gps_device_repo
+from src.repositories.dependencies import get_tenant_aware_repository
 
 router = APIRouter()
 
-# Get repository with organization_id from current user context
-get_gps_device_repository = get_gps_device_repo(organization_id=None)
+# Get repository with organization_id from current user JWT token
+get_gps_device_repository = get_tenant_aware_repository(GPSDeviceRepository)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -23,11 +23,14 @@ def create_gps_device(
     repo: GPSDeviceRepository = Depends(get_gps_device_repository)
 ):
     """
-    Create a GPS device and optionally bind it to a truck.
+    Create a GPS device and bind it to a truck.
+    Validates:
+    - truck_id is required
+    - truck belongs to the same organization
+    - truck is not already assigned to another GPS device
     """
     data = req.model_dump(exclude={"truck_id"})
-    if req.truck_id:
-        data["truck_id"] = req.truck_id
+    data["truck_id"] = req.truck_id  # truck_id is now required
     
     device = repo.create_device_with_truck_binding(data)
     return GenericCUDResponse(
