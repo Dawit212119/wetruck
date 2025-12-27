@@ -194,8 +194,11 @@ async def update_document(
     repo_document: DocumentRepository = Depends(get_document_repo),
     repo: DriverRepository = Depends(get_driver_repo)
 ):
-    truck = repo.get(id = id)
+    driver = repo.get(id = id)
     document: Document = repo_document.get(id= document_id)
+
+    if document.driver_id != driver.id: 
+        raise HTTPException(status_code=403, detail="Forbidden: Document does not belong to the specified driver.")
     if file:
         document.file_path = str(await DocumentService.save_on_aws(file=file))
     
