@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Query
 from typing import Dict, Any, List, Optional
 # from sqlalchemy.orm import Session
+from src.api.schemas.document import DocumentResponse
 from src.api.schemas.generic import GenericCUDResponse, GenericResponse
 from src.api.schemas.truck import TruckCreate, TruckPaginatedResponse, TruckStatusEnum, TruckTypeEnum, TruckUpdate, TruckRead
 # from src.models.models import Truck
@@ -14,11 +15,13 @@ from src.models.models import Truck
 from src.repositories.dependencies import get_repository, get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
 from src.repositories.truck_repository import TruckRepository
+from src.services.document import DocumentService
 # from dependencies import get_db, get_current_organization_id  # your auth/tenant dependency
 
 router = APIRouter()
 
 get_truck_repo = get_tenant_aware_repository(TruckRepository)
+get_document_repo = get_tenant_aware_repository(DocumentRepository)
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_truck(
@@ -111,12 +114,6 @@ def list_trucks(
     )
 
 
-# Directory to store uploaded files (change to S3 or cloud storage in production)
-UPLOAD_DIR = Path("uploads/documents")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-get_document_repo = get_tenant_aware_repository(DocumentRepository)
-
 
 @router.post(
     "/{id}/documents",
@@ -135,7 +132,7 @@ async def upload_document(
     # Create Document record
     document = {
         "document_type": document_type,
-        "file_path": str(await save_on_file(file=file)),
+        "file_path": str(await DocumentService.save_on_aws(file=file)),
         "truck_id": id,
     }
     return repo_document.create(document)
@@ -146,13 +143,31 @@ async def upload_document(
     status_code=status.HTTP_201_CREATED,
     summary="Get document attached to truck",
 )
-async def get_document(
+async def get_documents(
     id: int,
     repo_document: DocumentRepository = Depends(get_document_repo),
     repo: TruckRepository = Depends(get_truck_repo)
 ):
     truck: Truck = repo.get(id = id)
     return list(filter(lambda doc: not doc.deleted, truck.documents))
+
+@router.get(
+    "/{id}/documents/{document_id}",
+    response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_200_OK,
+    summary="Get document attached to truck",
+)
+async def get_document(
+    id: int,
+    document_id: int,
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: TruckRepository = Depends(get_truck_repo)
+):
+    truck = repo.get(id = id)
+    document = repo_document.get(id = document_id)
+
+    return await DocumentService.to_document_response(doc=document)
+
 
 @router.delete(
     "/{id}/documents/{document_id}",
@@ -171,31 +186,3 @@ async def delete_document(
     if not success:
         raise HTTPException(status_code=404, detail="Document not found or already deleted")
     return None
-
-async def save_on_file(file: UploadFile) -> str :
-    
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file selected")
-
-    allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png", ".tiff"}
-    file_ext = Path(file.filename).suffix.lower()
-    if file_ext not in allowed_extensions:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File type {file_ext} not allowed. Allowed: {', '.join(allowed_extensions)}",
-        )
-
-    # Generate unique filename
-    unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = UPLOAD_DIR / unique_filename
-
-    # Save file
-    try:
-        contents = await file.read()
-        file_path.write_bytes(contents)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to save file")
-    finally:
-        await file.close()
-    
-    return file_path

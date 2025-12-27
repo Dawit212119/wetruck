@@ -8,19 +8,23 @@ from src.api.schemas.gps_device import (
     GPSDevicePaginatedResponse,
 )
 from src.core.api_utils import build_filters
+from src.models.models import Truck, GPSDevice
 from src.repositories.gps_device_repository import GPSDeviceRepository
 from src.repositories.dependencies import get_tenant_aware_repository
+from src.repositories.truck_repository import TruckRepository
 
 router = APIRouter()
 
 # Get repository with organization_id from current user JWT token
 get_gps_device_repository = get_tenant_aware_repository(GPSDeviceRepository)
+get_truck_repository = get_tenant_aware_repository(TruckRepository)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_gps_device(
     req: GPSDeviceCreate,
-    repo: GPSDeviceRepository = Depends(get_gps_device_repository)
+    repo: GPSDeviceRepository = Depends(get_gps_device_repository),
+    repo_truck: TruckRepository = Depends(get_truck_repository)
 ):
     """
     Create a GPS device and bind it to a truck.
@@ -29,10 +33,14 @@ def create_gps_device(
     - truck belongs to the same organization
     - truck is not already assigned to another GPS device
     """
+    truck: Truck = None if req.truck_id is None else repo_truck.get(id=req.truck_id)
     data = req.model_dump(exclude={"truck_id"})
-    data["truck_id"] = req.truck_id  # truck_id is now required
-    
-    device = repo.create_device_with_truck_binding(data)
+    device: GPSDevice = repo.create(data)
+
+    if truck:
+        truck.gps_device = device
+        repo.commit()
+
     return GenericCUDResponse(
         status=True,
         success_message="GPS device created successfully",
@@ -62,7 +70,7 @@ def list_gps_devices(
         status=status,
     )
 
-    items, total, page, per_page, pages = repo.list_paginated(
+    items, total, page, per_page, pages = repo.paginated_list(
         page=page,
         per_page=per_page,
         filters=filters
@@ -88,8 +96,8 @@ def get_gps_device(
     Get a single GPS device by ID.
     """
     device = repo.get(id)
-    if not device:
-        raise HTTPException(status_code=404, detail="GPS device not found")
+    # if not device:
+    #     raise HTTPException(status_code=404, detail="GPS device not found")
     return GPSDeviceResponse.model_validate(device).model_dump()
 
 
@@ -97,17 +105,30 @@ def get_gps_device(
 def update_gps_device(
     id: int,
     req: GPSDeviceUpdate,
-    repo: GPSDeviceRepository = Depends(get_gps_device_repository)
+    repo: GPSDeviceRepository = Depends(get_gps_device_repository),
+    repo_truck = Depends(get_truck_repository)
 ):
     """
     Update GPS device metadata.
     If truck_id changed, reassign safely.
     """
+    device: GPSDevice = repo.get(id = id)
+    truck: Truck = None if req.truck_id is None else repo_truck.get(id=req.truck_id)
     update_data = req.model_dump(exclude_unset=True, exclude={"truck_id"})
-    if "truck_id" in req.model_dump(exclude_unset=True):
+    device = repo.update(id, update_data)
+
+    linked_truck: Truck = repo.get_truck_by_gps_device_id(id=id)
+    if truck:
+        truck.gps_device = device
         update_data["truck_id"] = req.truck_id
+        if linked_truck != None and linked_truck.id != truck.id:
+            linked_truck.gps_device = None
+    else:
+        #IF truck not set unlink gps-device
+        linked_truck.gps_device = None
     
-    device = repo.update_device(id, update_data)
+    repo.commit()
+    
     return GenericCUDResponse(
         status=True,
         success_message="GPS device updated successfully",

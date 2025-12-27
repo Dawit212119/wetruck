@@ -18,7 +18,7 @@ class GPSDeviceBase(BaseModel):
 
 
 class GPSDeviceCreate(GPSDeviceBase):
-    truck_id: int = Field(..., description="Truck ID to bind the GPS device to")
+    truck_id: Optional[int] = Field(default=None, description="Truck ID to bind the GPS device to")
 
 
 class GPSDeviceUpdate(BaseModel):
