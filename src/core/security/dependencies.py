@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 
 from src.core.security.jwt import decode_token
-
+from src.core.security.exceptions import InvalidTenantException
 security = HTTPBearer(auto_error=False)
 
 
@@ -53,5 +53,16 @@ def require_roles(*roles: str):
 
     return role_checker
 
+def get_current_user_tenant(
+    current_user: dict = Depends(get_current_user),
+) -> int:
+    organization_id = current_user.get("organization_id")
 
+    if organization_id is None:
+        raise InvalidTenantException()
+
+    return organization_id
+
+
+# TODO REFACTOR if not required remove
 transporter_only = require_roles("transporter")

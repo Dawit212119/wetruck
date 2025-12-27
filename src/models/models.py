@@ -7,7 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy import Enum as SAEnum
 
-from src.domain.enums.document import DocumentStatusEnum, DocumentTypeEnum
+from src.domain.enums.document import DocumentEntityType, DocumentStatusEnum, DocumentTypeEnum
 from src.domain.enums.driver import DriverStatusEnum
 from src.domain.enums.organization import OrganizationTypeEnum
 from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum
@@ -238,6 +238,10 @@ class Document(Base, AuditMixin, TenantMixin):
         SAEnum(DocumentTypeEnum, native_enum=False, length=50),
         nullable=False
     )
+    entity_type: Mapped[DocumentEntityType] = mapped_column(
+        SAEnum(DocumentEntityType, native_enum=False, length=50),
+        nullable=False
+    )
     status: Mapped[DocumentStatusEnum] = mapped_column(
         SAEnum(DocumentStatusEnum, native_enum=False, length=50),
         nullable=False,
@@ -247,9 +251,7 @@ class Document(Base, AuditMixin, TenantMixin):
     # Polymorphic ownership (separate from tenant organization)
     truck_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("truck.id"), nullable=True)
     driver_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("driver.id"), nullable=True)
-    direct_organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organization.id"), nullable=True)
 
     truck = relationship("Truck", back_populates="documents")
     driver = relationship("Driver", back_populates="documents")
-    direct_organization = relationship("Organization", foreign_keys=[direct_organization_id])
     # tenant "organization" relationship + organization_id column come from TenantMixin (mandatory)

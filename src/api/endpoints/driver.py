@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from src.api.schemas.document import DocumentResponse
 from src.api.schemas.driver import DriverCreate, DriverPaginatedResponse, DriverResponse, DriverUpdate
-from src.domain.enums.document import DocumentTypeEnum
+from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
 from src.models.models import Driver
 from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
@@ -146,6 +146,7 @@ async def upload_document(
         "document_type": document_type,
         "file_path": str(await DocumentService.save_on_aws(file=file)),
         "driver_id": id,
+        "entity_type": DocumentEntityType.DRIVER
     }
     return repo_document.create(document)
 

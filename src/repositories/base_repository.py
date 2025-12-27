@@ -23,9 +23,10 @@ class BaseRepository(ABC, Generic[ModelType]):
 
     model: type[ModelType]  # Will be set by the generic subclass
 
-    def __init__(self, db: Session, organization_id: Optional[int]):
+    def __init__(self, db: Session, organization_id: Optional[int], tenant_enabled: Optional[bool]=True):
         self.db = db
         self.organization_id = organization_id
+        self.tenant_enabled = tenant_enabled
 
         # Optional: validate that model is set (helps catch errors early)
         if not getattr(self, "model", None):
@@ -46,7 +47,7 @@ class BaseRepository(ABC, Generic[ModelType]):
         return hasattr(self.model, "organization_id")
 
     def _apply_tenant_scope(self, stmt):
-        if self._is_tenant_aware():
+        if self._is_tenant_aware() and self.tenant_enabled:
             stmt = stmt.where(self.model.organization_id == self.organization_id)
         return stmt
 

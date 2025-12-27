@@ -22,10 +22,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 get_document_repo = get_tenant_aware_repository(DocumentRepository)
 get_truck_repo = get_tenant_aware_repository(TruckRepository)
-get_organization_repo = get_repository(organization_id=None, repo_cls=OrganizationRepository)
+get_organization_repo = get_repository(repo_cls=OrganizationRepository)
 get_driver_repo = get_tenant_aware_repository(DriverRepository)
 
 
+# TODO REMOVE THIS FILE
 
 @router.post(
     "/documents/upload",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -6,14 +6,19 @@ from typing import List, Optional
 from src.api.schemas.generic import GenericCUDResponse
 from src.api.schemas.organization import OrganizationPaginatedResponse, OrganizationRead, OrganizationCreate, OrganizationUpdate
 from src.core.api_utils import build_filters
+from src.core.security.dependencies import get_current_user_tenant
+from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
 from src.domain.enums.organization import OrganizationTypeEnum
-from src.repositories.dependencies import get_repository
+from src.repositories.dependencies import get_repository, get_tenant_aware_repository
+from src.repositories.document_repository import DocumentRepository
 from src.repositories.organization_repository import OrganizationRepository
+from src.services.document import DocumentService
 
 
 router = APIRouter()
 
-get_organization_repo = get_repository(organization_id=None, repo_cls=OrganizationRepository)
+get_organization_repo = get_repository(OrganizationRepository)
+get_document_repo = get_tenant_aware_repository(DocumentRepository)
 
 
 @router.post("/", 
@@ -104,3 +109,27 @@ async def delete(
     if not success:
         raise HTTPException(status_code=404, detail="Not found or already deleted")
     return None
+
+
+@router.post(
+    "/documents",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a single document attached to organization for transporter and shipper user type",
+)
+async def upload_document(
+    document_type: DocumentTypeEnum = Form(..., description="Type of the document"),
+    file: UploadFile = File(..., description="The document file to upload"),
+    organization_id: int = Depends(get_current_user_tenant),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: OrganizationRepository = Depends(get_organization_repo)
+):
+    org = repo.get(id = organization_id)
+    # Create Document record
+    document = {
+        "document_type": document_type,
+        "file_path": str(await DocumentService.save_on_aws(file=file)),
+        "direct_organization_id": organization_id,
+        "entity_type": DocumentEntityType.ORGANIZATION
+    }
+    return repo_document.create(document)

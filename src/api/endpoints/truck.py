@@ -10,9 +10,9 @@ from src.api.schemas.generic import GenericCUDResponse, GenericResponse
 from src.api.schemas.truck import TruckCreate, TruckPaginatedResponse, TruckStatusEnum, TruckTypeEnum, TruckUpdate, TruckRead
 # from src.models.models import Truck
 from src.core.api_utils import build_filters
-from src.domain.enums.document import DocumentTypeEnum
+from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
 from src.models.models import Truck
-from src.repositories.dependencies import get_repository, get_tenant_aware_repository
+from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
 from src.repositories.truck_repository import TruckRepository
 from src.services.document import DocumentService
@@ -134,6 +134,7 @@ async def upload_document(
         "document_type": document_type,
         "file_path": str(await DocumentService.save_on_aws(file=file)),
         "truck_id": id,
+        "entity_type": DocumentEntityType.TRUCK
     }
     return repo_document.create(document)
 

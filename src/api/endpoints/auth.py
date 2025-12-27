@@ -12,25 +12,13 @@ from src.core.security.jwt import (
     decode_token,
 )
 from src.models.models import User
-from src.repositories.dependencies import get_repository
 from src.repositories.user_repository import UserRepository
 from src.core.security.dependencies import get_current_user
 
+
 router = APIRouter()
 
-get_user_repo = get_repository(4, UserRepository)
-
-
-@router.get(
-    "/list",
-    summary="list",
-    description="",
-)
-def list_users(repo: UserRepository = Depends(get_user_repo)):
-    return repo.list()
-
-
-
+# TODO REFACTOR TO USE BASE REPO
 @router.post(
     "/login",
     summary="Login",

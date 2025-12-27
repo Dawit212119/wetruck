@@ -18,12 +18,12 @@ from src.repositories.transporter_repository import TransporterUserRepository
 router = APIRouter()
 
 
-get_user_repo = get_repository(organization_id=None, repo_cls=UserRepository)
-get_organization_repo = get_repository(organization_id=None, repo_cls=OrganizationRepository)
+get_user_repo = get_repository(repo_cls=UserRepository)
+get_organization_repo = get_repository(repo_cls=OrganizationRepository)
 
-get_backoffice_user_repo = get_repository(organization_id=None, repo_cls=BackOfficeUserRepository)
-get_shipper_user_repo = get_repository(organization_id=None, repo_cls=ShipperUserRepository)
-get_transporter_user_repo = get_repository(organization_id=None, repo_cls=TransporterUserRepository)
+get_backoffice_user_repo = get_repository(repo_cls=BackOfficeUserRepository)
+get_shipper_user_repo = get_repository(repo_cls=ShipperUserRepository)
+get_transporter_user_repo = get_repository(repo_cls=TransporterUserRepository)
 
 @router.post("/register", response_model=UserRegisterResponse, status_code=status.HTTP_201_CREATED)
 def register_user(

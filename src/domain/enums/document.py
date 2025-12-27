@@ -12,3 +12,8 @@ class DocumentStatusEnum(Enum):
     APPROVED = "approved"
     PENDING = "pending"
     IN_ACTIVE = "in_active"
+
+class DocumentEntityType(Enum):
+    ORGANIZATION = "organization"
+    DRIVER = "driver"
+    TRUCK = "truck"
