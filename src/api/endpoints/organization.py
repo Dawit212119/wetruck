@@ -3,12 +3,14 @@ from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
+from src.api.schemas.document import DocumentResponse
 from src.api.schemas.generic import GenericCUDResponse
 from src.api.schemas.organization import OrganizationPaginatedResponse, OrganizationRead, OrganizationCreate, OrganizationUpdate
 from src.core.api_utils import build_filters
 from src.core.security.dependencies import get_current_user_tenant
 from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
 from src.domain.enums.organization import OrganizationTypeEnum
+from src.models.models import Document, Organization
 from src.repositories.dependencies import get_repository, get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
 from src.repositories.organization_repository import OrganizationRepository
@@ -41,7 +43,7 @@ async def create(
     response_model=OrganizationPaginatedResponse,
     summary="Get list of organizations",
 )
-async def list(
+async def list_organization(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     # Filters - all optional
@@ -129,7 +131,80 @@ async def upload_document(
     document = {
         "document_type": document_type,
         "file_path": str(await DocumentService.save_on_aws(file=file)),
-        "direct_organization_id": organization_id,
         "entity_type": DocumentEntityType.ORGANIZATION
     }
     return repo_document.create(document)
+
+
+@router.get(
+    "/documents/list",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    summary="Get document attached to organization",
+)
+async def list_documents(
+    organization_id: int = Depends(get_current_user_tenant),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: OrganizationRepository = Depends(get_organization_repo)
+):
+    org: Organization = repo.get(id = organization_id)
+    return list(filter(lambda doc: not doc.deleted, org.documents))
+
+@router.get(
+    "/documents/{document_id}/get",
+    response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_200_OK,
+    summary="Get document attached to Organization",
+)
+async def get_document(
+    document_id: int,
+    organization_id: int = Depends(get_current_user_tenant),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: OrganizationRepository = Depends(get_organization_repo)
+):
+    org = repo.get(id = organization_id)
+    document = repo_document.get(id = document_id)
+
+    return await DocumentService.to_document_response(doc=document)
+
+@router.patch(
+    "/documents/{document_id}/update",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    summary="Update document",
+)
+async def update_document(
+    document_id: int,
+    document_type: Optional[DocumentTypeEnum] = Form(None, description="Type of the document"),
+    file: Optional[UploadFile] = File(None, description="The document file to upload"),
+    organization_id: int = Depends(get_current_user_tenant),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: OrganizationRepository = Depends(get_organization_repo)
+):
+    org = repo.get(id = organization_id)
+    document: Document = repo_document.get(id= document_id)
+    if file:
+        document.file_path = str(await DocumentService.save_on_aws(file=file))
+    
+    if document_type:
+        document.document_type = document_type
+    
+    repo_document.commit()
+    repo_document.refresh(document)
+    return document
+
+@router.delete(
+    "/documents/{document_id}/delete",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Get document attached to Organization",
+)
+async def delete_document(
+    document_id: int,
+    organization_id: int = Depends(get_current_user_tenant),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: OrganizationRepository = Depends(get_organization_repo)
+):
+    org = repo.get(id = organization_id)
+    success = repo_document.soft_delete(id = document_id) 
+    if not success:
+        raise HTTPException(status_code=404, detail="Document not found or already deleted")
+    return None

@@ -211,3 +211,22 @@ class BaseRepository(ABC, Generic[ModelType]):
 
     def commit(self):
         self.db.commit()
+
+    def refresh(self, instance: object) -> None:
+        """
+        Refresh the given SQLAlchemy model instance from the database.
+        
+        This reloads the instance's attributes and relationships from the current
+        database state, discarding any in-memory changes that haven't been flushed/committed.
+        
+        Args:
+            instance: The SQLAlchemy model instance to refresh.
+        
+        Raises:
+            sqlalchemy.exc.UnboundExecutionError: If the instance is detached or expired.
+        """
+        if instance is None:
+            raise ValueError("Cannot refresh None instance")
+        
+        
+        self.db.refresh(instance)

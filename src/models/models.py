@@ -49,6 +49,7 @@ class Organization(Base, AuditMixin):
     email: Mapped[Optional[str]] = mapped_column(String(255))
     phone: Mapped[Optional[str]] = mapped_column(String(50))
 
+    documents = relationship("Document", back_populates="organization")
 
 class User(Base, AuditMixin):
     __tablename__ = "user"
@@ -251,7 +252,9 @@ class Document(Base, AuditMixin, TenantMixin):
     # Polymorphic ownership (separate from tenant organization)
     truck_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("truck.id"), nullable=True)
     driver_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("driver.id"), nullable=True)
+    # organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("driver.id"), nullable=True)
 
     truck = relationship("Truck", back_populates="documents")
     driver = relationship("Driver", back_populates="documents")
+    organization = relationship("Organization", back_populates="documents")
     # tenant "organization" relationship + organization_id column come from TenantMixin (mandatory)
