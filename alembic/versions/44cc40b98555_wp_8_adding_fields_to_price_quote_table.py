@@ -1,8 +1,8 @@
-"""WP-8 adding fields to price quote
+"""WP-8 adding fields to price quote table
 
-Revision ID: b8d96bbd4f17
-Revises: c944858e0683
-Create Date: 2025-12-26 20:29:59.231036
+Revision ID: 44cc40b98555
+Revises: b06d5ad44ed9
+Create Date: 2025-12-27 12:48:49.981563
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b8d96bbd4f17'
-down_revision: Union[str, Sequence[str], None] = 'c944858e0683'
+revision: str = '44cc40b98555'
+down_revision: Union[str, Sequence[str], None] = 'b06d5ad44ed9'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -25,13 +25,14 @@ def upgrade() -> None:
     op.add_column('price_quote', sa.Column('destination', sa.String(length=100), nullable=False))
     op.add_column('price_quote', sa.Column('gross_weight_min', sa.Integer(), nullable=False))
     op.add_column('price_quote', sa.Column('gross_weight_max', sa.Integer(), nullable=False))
-    op.add_column('price_quote', sa.Column('truck_type', sa.Enum('FLATBED', 'TRAILER', name='trucktypeenum', native_enum=False, length=50), nullable=False))
-    op.add_column('price_quote', sa.Column('container_size', sa.Enum('TWENTY_FEET', 'FORTY_FEET', name='containersizeenum', native_enum=False, length=50), nullable=False))
-    op.add_column('price_quote', sa.Column('axle_type', sa.Enum('SINGLE', 'DOUBLE', 'TRIPLE', name='truckaxletypeenum', native_enum=False, length=50), nullable=True))
-    op.add_column('price_quote', sa.Column('price_etb', sa.Numeric(precision=12, scale=2), nullable=False))
-    op.add_column('price_quote', sa.Column('valid_from', sa.DateTime(timezone=True), nullable=False))
-    op.add_column('price_quote', sa.Column('valid_to', sa.DateTime(timezone=True), nullable=False))
-    op.add_column('price_quote', sa.Column('status', sa.Enum('DRAFT', 'ACTIVE', 'INACTIVE', name='pricequotestatusenum', native_enum=False, length=50), nullable=False))
+    op.add_column('price_quote', sa.Column('truck_type', sa.String(length=50), nullable=False))
+    op.add_column('price_quote', sa.Column('container_size', sa.String(length=50), nullable=False))
+    op.add_column('price_quote', sa.Column('axle_type', sa.String(length=50), nullable=True))
+    op.add_column('price_quote', sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False))
+    op.add_column('price_quote', sa.Column('currency', sa.String(length=3), nullable=False))
+    op.add_column('price_quote', sa.Column('valid_from', sa.DateTime(timezone=True), nullable=True))
+    op.add_column('price_quote', sa.Column('valid_to', sa.DateTime(timezone=True), nullable=True))
+    op.add_column('price_quote', sa.Column('status', sa.String(length=50), nullable=False))
     # ### end Alembic commands ###
 
 
@@ -41,7 +42,8 @@ def downgrade() -> None:
     op.drop_column('price_quote', 'status')
     op.drop_column('price_quote', 'valid_to')
     op.drop_column('price_quote', 'valid_from')
-    op.drop_column('price_quote', 'price_etb')
+    op.drop_column('price_quote', 'currency')
+    op.drop_column('price_quote', 'amount')
     op.drop_column('price_quote', 'axle_type')
     op.drop_column('price_quote', 'container_size')
     op.drop_column('price_quote', 'truck_type')
