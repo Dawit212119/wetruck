@@ -184,6 +184,8 @@ async def update_document(
 ):
     truck = repo.get(id = id)
     document: Document = repo_document.get(id= document_id)
+    if document.truck_id != truck.id: 
+        raise HTTPException(status_code=403, detail="Forbidden: Document does not belong to the specified truck.")
     if file:
         document.file_path = str(await DocumentService.save_on_aws(file=file))
     
