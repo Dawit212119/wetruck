@@ -12,3 +12,9 @@ class TruckStatusEnum(Enum):
 class TruckTypeEnum(Enum):
     FLATBED = "flatbed"
     TRAILER = "trailer"
+
+
+class TruckAxleTypeEnum(Enum):
+    SINGLE = "single"
+    DOUBLE = "double"
+    TRIPLE = "triple"

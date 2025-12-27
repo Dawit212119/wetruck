@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import String
+from sqlalchemy import Numeric, String
 from src.core.db.session import Base
 from sqlalchemy import Column, Integer, Boolean, Date, DateTime, ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -10,8 +10,11 @@ from sqlalchemy import Enum as SAEnum
 from src.domain.enums.document import DocumentEntityType, DocumentStatusEnum, DocumentTypeEnum
 from src.domain.enums.driver import DriverStatusEnum
 from src.domain.enums.organization import OrganizationTypeEnum
-from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum
+from src.domain.enums.truck import TruckStatusEnum, TruckTypeEnum,TruckAxleTypeEnum
 from src.domain.enums.user import UserStatusEnum, UserTypeEnum
+from src.domain.enums.container import ContainerSizeEnum
+from src.domain.enums.price_quote import PriceQuoteStatusEnum
+from src.domain.enums.location import  LocationEnum
 
 
 class AuditMixin:
@@ -228,9 +231,37 @@ class GPSDevice(Base, AuditMixin, TenantMixin):
 
 class PriceQuote(Base, AuditMixin, TenantMixin):
     __tablename__ = "price_quote"
-    pass
-
-
+    origin: Mapped[LocationEnum] = mapped_column(
+        SAEnum(LocationEnum, native_enum=False, length=100),
+        nullable=False,
+    )
+    destination: Mapped[LocationEnum] = mapped_column(
+        SAEnum(LocationEnum, native_enum=False, length=100),
+        nullable=False,
+    )
+    gross_weight_min: Mapped[int] = mapped_column(Integer, nullable=False)
+    gross_weight_max: Mapped[int] = mapped_column(Integer, nullable=False)
+    truck_type: Mapped[TruckTypeEnum] = mapped_column(
+        SAEnum(TruckTypeEnum, native_enum=False, length=50),
+        nullable=False,
+    )
+    container_size: Mapped[ContainerSizeEnum] = mapped_column(
+        SAEnum(ContainerSizeEnum, native_enum=False, length=50),
+        nullable=False,
+    )
+    axle_type: Mapped[TruckAxleTypeEnum] = mapped_column(
+        SAEnum(TruckAxleTypeEnum, native_enum=False, length=50),
+        nullable=True,
+    )
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="ETB")
+    valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    valid_to: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[PriceQuoteStatusEnum] = mapped_column(
+        SAEnum(PriceQuoteStatusEnum, native_enum=False, length=50),
+        nullable=False,
+        default=PriceQuoteStatusEnum.DRAFT,
+    )
 class Document(Base, AuditMixin, TenantMixin):
     __tablename__ = "document"
     # document_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Fixed: now a proper column
