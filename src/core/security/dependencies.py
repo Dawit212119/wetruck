@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status, Cookie
+from fastapi import Depends, HTTPException, Query, status, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 
@@ -54,7 +54,7 @@ def require_roles(*roles: str):
     return role_checker
 
 def get_current_user_tenant(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user)
 ) -> int:
     organization_id = current_user.get("organization_id")
 

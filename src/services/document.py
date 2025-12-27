@@ -37,7 +37,6 @@ class DocumentService:
             file_path = doc.file_path,
             truck_id = doc.truck_id,
             driver_id = doc.driver_id,
-            direct_organization_id = doc.direct_organization_id,
             created_at = doc.created_at,
             updated_at = doc.updated_at,
             presigned_url = presigned_url

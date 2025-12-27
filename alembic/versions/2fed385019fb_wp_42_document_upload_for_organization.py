@@ -1,8 +1,8 @@
 """WP-42-document-upload-for-organization
 
-Revision ID: 8be47168dd32
-Revises: b06d5ad44ed9
-Create Date: 2025-12-27 11:22:45.180792
+Revision ID: 2fed385019fb
+Revises: 44cc40b98555
+Create Date: 2025-12-27 16:03:23.504632
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8be47168dd32'
-down_revision: Union[str, Sequence[str], None] = 'b06d5ad44ed9'
+revision: str = '2fed385019fb'
+down_revision: Union[str, Sequence[str], None] = '44cc40b98555'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -34,4 +34,3 @@ def downgrade() -> None:
     op.create_foreign_key(op.f('document_direct_organization_id_fkey'), 'document', 'organization', ['direct_organization_id'], ['id'])
     op.drop_column('document', 'entity_type')
     # ### end Alembic commands ###
-

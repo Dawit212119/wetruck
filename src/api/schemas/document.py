@@ -11,7 +11,6 @@ class DocumentResponse(BaseModel):
     file_path: str
     truck_id: Optional[int]
     driver_id: Optional[int]
-    direct_organization_id: Optional[int]
     presigned_url: Optional[str]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]

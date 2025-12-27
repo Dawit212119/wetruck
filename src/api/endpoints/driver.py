@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from src.api.schemas.document import DocumentResponse
 from src.api.schemas.driver import DriverCreate, DriverPaginatedResponse, DriverResponse, DriverUpdate
 from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
-from src.models.models import Driver
+from src.models.models import Document, Driver
 from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
 from src.repositories.driver_repository import DriverRepository
@@ -181,6 +181,33 @@ async def get_document(
 
     return await DocumentService.to_document_response(doc=document)
 
+@router.patch(
+    "{id}/documents/{document_id}",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    summary="Update document",
+)
+async def update_document(
+    id: int,
+    document_id: int,
+    document_type: Optional[DocumentTypeEnum] = Form(None, description="Type of the document"),
+    file: Optional[UploadFile] = File(None, description="The document file to upload"),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: DriverRepository = Depends(get_driver_repo)
+):
+    driver = repo.get(id = id)
+    document: Document = repo_document.get(id= document_id)
+
+    if document.driver_id != driver.id: 
+        raise HTTPException(status_code=403, detail="Forbidden: Document does not belong to the specified driver.")
+    if file:
+        document.file_path = str(await DocumentService.save_on_aws(file=file))
+    
+    if document_type:
+        document.document_type = document_type
+    
+    repo_document.commit()
+    repo_document.refresh(document)
+    return document
 
 @router.delete(
     "/{id}/documents/{document_id}",

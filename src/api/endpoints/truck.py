@@ -11,7 +11,7 @@ from src.api.schemas.truck import TruckCreate, TruckPaginatedResponse, TruckStat
 # from src.models.models import Truck
 from src.core.api_utils import build_filters
 from src.domain.enums.document import DocumentEntityType, DocumentTypeEnum
-from src.models.models import Truck
+from src.models.models import Document, Truck
 from src.repositories.dependencies import get_tenant_aware_repository
 from src.repositories.document_repository import DocumentRepository
 from src.repositories.truck_repository import TruckRepository
@@ -168,6 +168,33 @@ async def get_document(
     document = repo_document.get(id = document_id)
 
     return await DocumentService.to_document_response(doc=document)
+
+@router.patch(
+    "{id}/documents/{document_id}",
+    # response_model=DocumentResponse,  # or a pydantic response model if you prefer
+    summary="Update document",
+)
+async def update_document(
+    id: int,
+    document_id: int,
+    document_type: Optional[DocumentTypeEnum] = Form(None, description="Type of the document"),
+    file: Optional[UploadFile] = File(None, description="The document file to upload"),
+    repo_document: DocumentRepository = Depends(get_document_repo),
+    repo: TruckRepository = Depends(get_truck_repo)
+):
+    truck = repo.get(id = id)
+    document: Document = repo_document.get(id= document_id)
+    if document.truck_id != truck.id: 
+        raise HTTPException(status_code=403, detail="Forbidden: Document does not belong to the specified truck.")
+    if file:
+        document.file_path = str(await DocumentService.save_on_aws(file=file))
+    
+    if document_type:
+        document.document_type = document_type
+    
+    repo_document.commit()
+    repo_document.refresh(document)
+    return document
 
 
 @router.delete(
