@@ -1,56 +1,58 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
-from src.domain.enums.truck import  TruckTypeEnum,TruckAxleTypeEnum
+from src.domain.enums.truck import TruckTypeEnum, TruckAxleTypeEnum
 from src.domain.enums.container import ContainerSizeEnum
 from src.domain.enums.price_quote import PriceQuoteStatusEnum
+from src.domain.enums.location import LocationEnum
 from src.api.schemas.generic import PaginatedResponse
 
 
 class PriceQuoteCreate(BaseModel):
-    origin: str = Field(..., min_length=2, max_length=100)
-    destination: str = Field(..., min_length=2, max_length=100)
+    origin: LocationEnum
+    destination: LocationEnum
     gross_weight_min: int
     gross_weight_max: int
-    container_size: ContainerSizeEnum
     truck_type: TruckTypeEnum
+    container_size: ContainerSizeEnum
     axle_type: Optional[TruckAxleTypeEnum] = None
-    price_etb: float
-    valid_from: datetime
-    valid_to: datetime
-    status: PriceQuoteStatusEnum
+    amount: float
+    currency: Optional[str] = Field(None, max_length= 3)
+
 
 class PriceQuoteUpdate(BaseModel):
-    origin: Optional[str] = None
-    destination: Optional[str] = None
+    origin: Optional[LocationEnum] = None
+    destination: Optional[LocationEnum] = None
     gross_weight_min: Optional[int] = None
     gross_weight_max: Optional[int] = None
-    container_size: Optional[ContainerSizeEnum] = None
     truck_type: Optional[TruckTypeEnum] = None
+    container_size: Optional[ContainerSizeEnum] = None
     axle_type: Optional[TruckAxleTypeEnum] = None
-    price_etb: Optional[float] = None
-    valid_from: Optional[datetime] = None
-    valid_to: Optional[datetime] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = Field(None, max_length=3)
     status: Optional[PriceQuoteStatusEnum] = None
+
 
 class PriceQuoteResponse(BaseModel):
     id: int
-    origin: str
-    destination: str
+    origin: LocationEnum
+    destination: LocationEnum
     gross_weight_min: int
     gross_weight_max: int
-    container_size: ContainerSizeEnum
     truck_type: TruckTypeEnum
+    container_size: ContainerSizeEnum
     axle_type: Optional[TruckAxleTypeEnum] = None
-    price_etb: float
-    valid_from: datetime
-    valid_to: datetime
+    amount: float
+    currency: str
+    valid_from: Optional[datetime] = None
+    valid_to: Optional[datetime] = None
     status: PriceQuoteStatusEnum
     organization_id: int
 
     model_config = {
         "from_attributes": True
     }
+
 
 class PriceQuotePaginatedResponse(PaginatedResponse):
     items: List[PriceQuoteResponse]
